@@ -12,8 +12,8 @@ env = TradingEnvironment(data)
 # Simple strategy: SMA Crossover (fast=5, slow=10)
 while env.has_data():
     now = env.now()
-    fast_sma = env.simple_moving_average(5)
-    slow_sma = env.simple_moving_average(10)
+    fast_sma = env.simple_moving_average(100)
+    slow_sma = env.simple_moving_average(200)
 
     # Skip if we don't have enough data for moving averages
     if fast_sma is None or slow_sma is None:
@@ -23,11 +23,11 @@ while env.has_data():
     if not env.current_trade:
         if fast_sma > slow_sma:
             # Use a fixed risk amount instead of percentage of price
-            risk_amount = now["close"] * 0.02  # 2% of current price as risk per share
+            risk_amount = now["close"] * 0.001  # 2% of current price as risk per share
             env.take_position(risk=risk_amount, price=now["close"])
     else:
         if now["close"] < env.current_trade["stop_loss"]:
-            env.exit_position(price=now["close"], action="stop_loss")
+            env.exit_position(price=env.current_trade["stop_loss"], action="stop_loss")
         elif fast_sma < slow_sma:
             env.exit_position(price=now["close"], action="sma")
 
@@ -35,9 +35,11 @@ while env.has_data():
 
 # Print summary
 summary = env.summary()
-print(f"Final Capital: {summary['final_capital']}")
-print(f"Profit: {summary['profit']}")
+print(f"Final Capital: {summary['final_capital']:.2f}")
+print(f"Profit: {summary['profit']:.2f}")
 print(f"Total Trades: {summary['total_trades']}")
+print(f"Total Fees Paid: {summary['total_fees_paid']:.2f}")
+print(f"Net Profit After Fees: {summary['net_profit_after_fees']:.2f}")
 
 # Save results
 os.makedirs("data/result", exist_ok=True)
