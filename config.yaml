@@ -2,14 +2,26 @@
 # The backtest can be run on a specific pair using its index (e.g., `make run index=0`)
 # or on all of them (`make run index=all`).
 trading_pairs:
-  - { symbol: "BTC/USDT", timeframe: "1h", start: "2022-01-01", end: "2023-12-31" }
-  - { symbol: "ETH/USDT", timeframe: "1h", start: "2022-01-01", end: "2022-12-31" }
+  - {
+      symbol: "BTC/USDT",
+      timeframe: "1h",
+      start: "2022-01-01",
+      end: "2022-12-31",
+    }
+  - {
+      symbol: "ETH/USDT",
+      timeframe: "1h",
+      start: "2022-01-01",
+      end: "2022-12-31",
+    }
 
 # --- Indicator Pre-processing ---
 # These indicators will be calculated for the selected trading pair.
 indicators:
+  # Moving Averages
   - { name: "SMA", period: 50 }
   - { name: "SMA", period: 200 }
+  - { name: "EMA", period: 21 }
 
 # --- Portfolio Configuration ---
 portfolio:
