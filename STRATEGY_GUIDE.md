@@ -1,166 +1,91 @@
-# Strategy Framework Documentation
+# Strategy Framework Documentation (v4)
 
 ## Overview
 
-The strategy framework provides a flexible base class for implementing trading strategies. The base class handles the main trading loop, while child classes only need to implement the specific buy/sell/liquidate logic.
+This framework provides a robust and modular structure for developing and backtesting trading strategies. It is designed with a clean separation of concerns, where the `BaseStrategy` class orchestrates the trading logic, and child classes provide specific entry and exit signals for long and short positions.
 
-## Base Strategy Class
+- **`TradingEnvironment`**: Acts as the data provider.
+- **`Portfolio`**: Manages all financial aspects (capital, trades, P&L).
+- **`BaseStrategy`**: The engine that runs the backtest and requires you to implement four signal-generating methods.
 
-The `BaseStrategy` class provides:
+## Creating a Custom Strategy
 
-- **Main trading loop**: Handles data iteration and trade execution
-- **Liquidation functionality**: Can exit any current position (buy or sell)
-- **Abstract methods**: Forces child classes to implement specific logic
-- **Summary printing**: Formatted output of backtest results
+To create a new strategy, you must inherit from `BaseStrategy` and implement four abstract methods, which define your entry and exit logic for both long and short positions.
 
-## Required Methods to Implement
-
-### 1. `buy_signal(self) -> dict`
-
-Returns buy signal information when conditions are met for a long position.
-
-**Return format:**
-
-```python
-{
-    'should_buy': bool,      # Whether to execute buy
-    'risk_amount': float,    # Risk amount for position sizing
-    'price': float          # Entry price
-}
-```
-
-### 2. `sell_signal(self) -> dict`
-
-Returns sell signal information when conditions are met for a short position.
-
-**Return format:**
-
-```python
-{
-    'should_sell': bool,     # Whether to execute sell
-    'risk_amount': float,    # Risk amount for position sizing
-    'price': float          # Entry price
-}
-```
-
-### 3. `liquidate_signal(self) -> dict`
-
-Returns liquidation signal to exit current position (either buy or sell).
-
-**Return format:**
-
-```python
-{
-    'should_liquidate': bool, # Whether to liquidate
-    'price': float,          # Exit price
-    'action': str           # Reason for liquidation
-}
-```
-
-## Optional Methods to Override
-
-### `_has_sufficient_data(self) -> bool`
-
-Override this to check if there's enough data for your strategy calculations (e.g., for moving averages).
-
-## Available Strategy Examples
-
-### 1. SMACrossoverStrategy
-
-- **Type**: Long-only strategy
-- **Logic**: Buys on fast SMA > slow SMA, liquidates on opposite signal or stop loss
-- **Parameters**: `fast_period`, `slow_period`, `risk_pct`
-
-### 2. SimpleStrategy
-
-- **Type**: Long-only strategy
-- **Logic**: Buys when price > SMA, liquidates when price < SMA
-- **Parameters**: `sma_period`, `risk_amount`
-
-### 3. LongShortSMAStrategy
-
-- **Type**: Long/Short strategy
-- **Logic**: Goes long on fast SMA > slow SMA, goes short on fast SMA < slow SMA
-- **Parameters**: `fast_period`, `slow_period`, `risk_pct`
-
-## Usage Example
-
-```python
-from env.trading_env import TradingEnvironment
-from utils.data_loader import load_data
-from strategies import SMACrossoverStrategy
-
-# Load data and create environment
-data = load_data("data/raw/btcusdt_1h.csv")
-env = TradingEnvironment(data)
-
-# Initialize strategy
-strategy = SMACrossoverStrategy(
-    env,
-    fast_period=50,
-    slow_period=200,
-    risk_pct=0.01
-)
-
-# Run backtest
-summary = strategy.run_backtest()
-
-# Print results
-strategy.print_summary(summary)
-```
-
-## Manual Liquidation
-
-You can manually liquidate positions using the `liquidate()` method:
-
-```python
-# Liquidate at current market price
-strategy.liquidate()
-
-# Liquidate at specific price with custom reason
-strategy.liquidate(price=50000, action="manual_exit")
-```
-
-## Creating Custom Strategies
+### 1. Inherit from `BaseStrategy`
 
 ```python
 from strategies.base_strategy import BaseStrategy
+from utils.indicators import simple_moving_average
 
 class MyCustomStrategy(BaseStrategy):
-    def __init__(self, env, custom_param=10):
-        super().__init__(env)
-        self.custom_param = custom_param
+    def __init__(self, env, portfolio, my_param=10):
+        super().__init__(env, portfolio)
+        self.my_param = my_param
+```
 
+### 2. Implement Entry Signals
+
+#### `buy_signal(self)`
+Define conditions for entering a **long** position. Return the entry price or `None`.
+
+```python
     def buy_signal(self):
-        # Your buy logic here
-        now = self.env.now()
-        if your_buy_condition:
-            return {
-                'should_buy': True,
-                'risk_amount': now["close"] * 0.02,
-                'price': now["close"]
-            }
-        return None
-
-    def sell_signal(self):
-        # Your sell logic here (or return None for long-only)
-        return None
-
-    def liquidate_signal(self):
-        # Your exit logic here
-        if your_exit_condition:
-            return {
-                'should_liquidate': True,
-                'price': self.env.now()["close"],
-                'action': 'custom_exit'
-            }
+        sma = simple_moving_average(self.env.get_historical_data(20), 20)
+        if sma and self.env.now['close'] > sma:
+            return self.env.now['close'] # Return price to buy at
         return None
 ```
 
-## Key Benefits
+#### `sell_signal(self)`
+Define conditions for entering a **short** position. Return the entry price or `None`. For long-only strategies, simply `return None`.
 
-1. **Separation of Concerns**: Trading logic is separate from execution logic
-2. **Reusability**: Base class handles common operations
-3. **Flexibility**: Supports both long-only and long/short strategies
-4. **Consistency**: Standardized interface for all strategies
-5. **Easy Testing**: Each strategy can be easily backtested and compared
+```python
+    def sell_signal(self):
+        return None # This is a long-only strategy
+```
+
+### 3. Implement Exit Signals
+
+#### `close_long_signal(self)`
+Define conditions for exiting a **long** position. Return a tuple of `(price, reason)` or `(None, None)`.
+
+```python
+    def close_long_signal(self):
+        now = self.env.now
+        trade = self.portfolio.current_trade
+
+        # Stop Loss
+        if now['low'] < trade['stop_loss']:
+            return trade['stop_loss'], "stop_loss"
+
+        # Signal-based exit
+        sma = simple_moving_average(self.env.get_historical_data(20), 20)
+        if sma and now['close'] < sma:
+            return now['close'], "signal_exit"
+            
+        return None, None
+```
+
+#### `close_short_signal(self)`
+Define conditions for exiting a **short** position. Return `(price, reason)` or `(None, None)`. For long-only strategies, simply `return None, None`.
+
+```python
+    def close_short_signal(self):
+        return None, None # This is a long-only strategy
+```
+
+## How It Works
+
+The `run_backtest` method in `BaseStrategy` is the engine. On each candle, it checks if a trade is open.
+- If a **long** trade is open, it calls your `close_long_signal()` method.
+- If a **short** trade is open, it calls your `close_short_signal()` method.
+- If no trade is open, it calls `buy_signal()` and `sell_signal()`.
+
+The base class uses your signals to automatically manage the portfolio.
+
+## Key Benefits of this Architecture
+
+1.  **Maximum Clarity**: Logic is separated by both position type (long/short) and action type (entry/exit). This is a highly organized and readable structure.
+2.  **Symmetry**: The method pairs (`buy_signal`/`close_long_signal` and `sell_signal`/`close_short_signal`) create an intuitive and easy-to-understand design.
+3.  **Reduced Complexity**: Child strategies are extremely focused. Each method has one, and only one, job to do.
