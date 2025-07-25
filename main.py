@@ -1,15 +1,13 @@
-import os
-import re
 import sys
 import yaml
 import pandas as pd
 import importlib
+import re
 from pathlib import Path
 
 from env.trading_env import TradingEnvironment
-from utils.data_loader import load_data
-from utils.indicator_processor import IndicatorProcessor
 from portfolio.portfolio import Portfolio
+from utils.data_manager import prepare_data_for_backtest
 
 
 def to_snake_case(name):
@@ -18,77 +16,64 @@ def to_snake_case(name):
     return re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1).lower()
 
 
-def get_pair_filename(pair_config):
-    """Generates a standard filename from a trading pair config."""
-    symbol = pair_config["symbol"].replace("/", "").lower()
-    timeframe = pair_config["timeframe"]
-    return f"{symbol}_{timeframe}.csv"
-
-
-def run_backtest_for_pair(pair_config, config):
-    """Runs the full backtest process for a single trading pair."""
-    
-    # 1. Define dynamic file paths
-    filename_base = get_pair_filename(pair_config)
-    raw_filepath = Path("data/raw") / filename_base
-    enriched_filepath = Path("data/processed") / filename_base
-    result_filepath = Path("data/result") / filename_base
-
-    print(f"\n--- Starting Backtest for {pair_config['symbol']} ---")
-    
-    if not raw_filepath.exists():
-        print(f"[ERROR] Raw data file not found: {raw_filepath}")
-        print("Please run 'make download' first.")
-        return
-
-    # 2. Load Raw Data
-    raw_data = load_data(raw_filepath)
-
-    # 3. Pre-process Data to Add Indicators
-    indicator_processor = IndicatorProcessor(raw_data)
-    enriched_data = indicator_processor.process(config["indicators"])
-    enriched_filepath.parent.mkdir(parents=True, exist_ok=True)
-    indicator_processor.save_to_csv(enriched_filepath)
-
-    # 4. Initialize Environment and Portfolio
+def initialize_components(config, enriched_data):
+    """Initializes the environment, portfolio, and strategy."""
     env = TradingEnvironment(enriched_data)
     portfolio = Portfolio(
         capital=config["portfolio"]["initial_capital"],
         fee_pct=config["portfolio"]["fee_pct"],
     )
 
-    # 5. Dynamically Load and Initialize Strategy
     strategy_config = config["strategy"]
     strategy_class_name = strategy_config["class_name"]
     strategy_params = strategy_config["parameters"]
     strategy_module_name = to_snake_case(strategy_class_name)
-    
+
     strategy_module = importlib.import_module(f"strategies.{strategy_module_name}")
     StrategyClass = getattr(strategy_module, strategy_class_name)
-    strategy = StrategyClass(env, portfolio, **strategy_params)
+    
+    return StrategyClass(env, portfolio, **strategy_params)
 
-    # 6. Run Backtest
+
+def run_and_save_results(strategy, pair_config):
+    """Runs the backtest and saves the results."""
+    print(f"\n--- Running Backtest: {strategy.__class__.__name__} on {pair_config['symbol']} ---")
     summary = strategy.run_backtest()
 
-    # 7. Print Summary and Save Results
-    print(f"\n--- Results for {pair_config['symbol']} ---")
-    portfolio.print_summary()
+    # Save results
+    filename_base = f"{pair_config['symbol'].replace('/', '').lower()}_{pair_config['timeframe']}.csv"
+    result_filepath = Path("data/result") / filename_base
     result_filepath.parent.mkdir(parents=True, exist_ok=True)
+    
     pd.DataFrame(summary["trades"]).to_csv(result_filepath, index=False)
+    
+    print(f"\n--- Results for {pair_config['symbol']} ---")
+    strategy.portfolio.print_summary()
     print(f"Results saved to {result_filepath}")
     print("--------------------------------------")
 
 
+def run_backtest_for_pair(pair_config, config):
+    """Runs the full backtest process for a single trading pair."""
+    print(f"\n--- Preparing Data for {pair_config['symbol']} ---")
+    enriched_data = prepare_data_for_backtest(pair_config, config["indicators"])
+    
+    if enriched_data is None or enriched_data.empty:
+        print(f"[ERROR] Could not prepare data for {pair_config['symbol']}. Skipping backtest.")
+        return
+        
+    strategy = initialize_components(config, enriched_data)
+    run_and_save_results(strategy, pair_config)
+
+
 def main():
-    # 1. Load Configuration
     with open("config.yaml", "r") as f:
         config = yaml.safe_load(f)
 
-    # 2. Determine which pairs to run
     try:
         run_arg = sys.argv[1]
     except IndexError:
-        print("[ERROR] Please specify which index to run (e.g., 'python main.py all' or 'python main.py 0').")
+        print("[ERROR] Please specify an index (e.g., 'python main.py all' or 'python main.py 0').")
         return
 
     trading_pairs = config["trading_pairs"]
