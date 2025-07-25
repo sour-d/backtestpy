@@ -2,10 +2,11 @@ from abc import ABC, abstractmethod
 
 
 class BaseStrategy(ABC):
-    def __init__(self, env, portfolio, risk_pct=0.01):
+    def __init__(self, env, portfolio, **params):
         self.env = env
         self.portfolio = portfolio
-        self.risk_pct = risk_pct
+        self.params = params
+        self.risk_pct = self.params.get("risk_pct", 0.01)
 
     @abstractmethod
     def buy_signal(self):

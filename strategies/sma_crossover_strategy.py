@@ -1,26 +1,16 @@
 from .base_strategy import BaseStrategy
-from utils.indicators import simple_moving_average
 
 
 class SMACrossoverStrategy(BaseStrategy):
-    def __init__(self, env, portfolio, fast_period=50, slow_period=200, risk_pct=0.01):
-        super().__init__(env, portfolio, risk_pct)
-        self.fast_period = fast_period
-        self.slow_period = slow_period
-
-    def _get_indicators(self):
-        history = self.env.get_historical_data(self.slow_period)
-        if history is None:
-            return None, None
-
-        fast_sma = simple_moving_average(history, self.fast_period)
-        slow_sma = simple_moving_average(history, self.slow_period)
-        return fast_sma, slow_sma
+    def __init__(self, env, portfolio, **params):
+        super().__init__(env, portfolio, **params)
+        self.fast_sma_col = self.params.get("fast_sma_col", "SMA_50")
+        self.slow_sma_col = self.params.get("slow_sma_col", "SMA_200")
 
     def buy_signal(self):
-        fast_sma, slow_sma = self._get_indicators()
-        if fast_sma is not None and slow_sma is not None and fast_sma > slow_sma:
-            return self.env.now["close"]
+        now = self.env.now
+        if now[self.fast_sma_col] > now[self.slow_sma_col]:
+            return now["close"]
         return None
 
     def sell_signal(self):
@@ -36,8 +26,7 @@ class SMACrossoverStrategy(BaseStrategy):
             return trade["stop_loss"], "stop_loss"
 
         # Crossover exit check
-        fast_sma, slow_sma = self._get_indicators()
-        if fast_sma is not None and slow_sma is not None and fast_sma < slow_sma:
+        if now[self.fast_sma_col] < now[self.slow_sma_col]:
             return now["close"], "sma_crossover_exit"
 
         return None, None
