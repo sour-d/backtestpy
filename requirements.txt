@@ -5,3 +5,4 @@ numpy
 ccxt
 plotly
 PyYAML
+pandas-ta
