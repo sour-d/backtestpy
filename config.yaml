@@ -5,31 +5,25 @@ trading_pairs:
   - { 
       symbol: "BTC/USDT",
       timeframe: "1h",
-      start: "2022-01-01",
-      end: "2022-12-31",
+      start: "2024-01-01",
+      end: "2024-12-31",
     }
   - { 
       symbol: "ETH/USDT",
       timeframe: "1h",
-      start: "2022-01-01",
-      end: "2022-12-31",
+      start: "2024-01-01",
+      end: "2024-12-31",
     }
 
 # --- Indicator Pre-processing --- 
 # These indicators will be calculated for the selected trading pair.
 indicators:
   # Moving Averages
-  - { name: "sma", length: 50 }
-  - { name: "sma", length: 200 }
-  - { name: "ema", length: 21 }
+  - { name: "ma_high", period: 20 }
+  - { name: "ma_low", period: 20 }
 
-  # Oscillators
-  - { name: "rsi", length: 14 }
-  - { name: "macd", fast: 12, slow: 26, signal: 9}
-
-  # Volatility
-  - { name: "bbands", length: 20, std: 2 }
-  - { name: "atr", length: 14 }
+  # SuperTrend
+  - { name: "supertrend", period: 10, multiplier: 2 }
 
 # --- Portfolio Configuration ---
 portfolio:
@@ -39,8 +33,8 @@ portfolio:
 # --- Strategy Configuration ---
 # This strategy will be applied to the selected trading pair(s).
 strategy:
-  class_name: "SMACrossoverStrategy"
+  class_name: "MovingAverageStrategy"
   parameters:
-    fast_sma_col: "SMA_50"
-    slow_sma_col: "SMA_200"
-    risk_pct: 0.01
+    ma_period: 20
+    supertrend_period: 10
+    supertrend_multiplier: 3

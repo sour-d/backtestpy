@@ -93,7 +93,9 @@ class Portfolio:
         self.current_trade = None
 
     def summary(self):
+        gross_profit_without_fees = sum(trade["gross_profit_loss"] for trade in self.trades)
         return {
+            "gross_profit_without_fees": gross_profit_without_fees,
             "final_capital": self.capital,
             "initial_capital": self.initial_capital,
             "profit": self.capital - self.initial_capital,
@@ -106,12 +108,9 @@ class Portfolio:
     def print_summary(self):
         summary_data = self.summary()
         print("--- Backtest Summary ---")
-        print(f"Final Capital: {summary_data['final_capital']:.2f}")
-        print(f"Profit: {summary_data['profit']:.2f}")
         print(f"Total Trades: {summary_data['total_trades']}")
+        print(f"Gross Profit Without Fees: {summary_data['gross_profit_without_fees']:.2f}")
         print(f"Total Fees Paid: {summary_data['total_fees_paid']:.2f}")
-        print(
-            "Net Profit After Fees: "
-            f"{summary_data['net_profit_after_fees']:.2f}"
-        )
+        print(f"Net Profit: {summary_data['profit']:.2f}")
+        print(f"Final Capital: {summary_data['final_capital']:.2f}")
         print("------------------------")

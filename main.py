@@ -58,7 +58,7 @@ def run_backtest_for_pair(pair_config, config):
     """Runs the full backtest process for a single trading pair."""
     print(f"\n--- Preparing Data for {pair_config['symbol']} ---")
     # Pass a deep copy of the indicators config to prevent in-place modification issues
-    enriched_data = prepare_data_for_backtest(pair_config, copy.deepcopy(config["indicators"]))
+    enriched_data = prepare_data_for_backtest(pair_config, copy.deepcopy(config["indicators"]), force_reprocess=True)
     
     if enriched_data is None or enriched_data.empty:
         print(f"[ERROR] Could not prepare data for {pair_config['symbol']}. Skipping backtest.")

@@ -9,7 +9,6 @@ def load_data(filepath):
     else:
         df['datetime'] = pd.to_datetime(df['timestamp'], unit='ms')
 
-    # Optional: set datetime as index
-    df.set_index('datetime', inplace=True)
+    
 
     return df

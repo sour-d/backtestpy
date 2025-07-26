@@ -25,7 +25,7 @@ def _check_file_date_range(filepath, required_start, required_end):
         return False
 
 
-def prepare_data_for_backtest(pair_config, indicator_configs):
+def prepare_data_for_backtest(pair_config, indicator_configs, force_reprocess=False):
     """
     Ensures both raw and enriched data are ready for a backtest.
     """
@@ -33,23 +33,29 @@ def prepare_data_for_backtest(pair_config, indicator_configs):
     raw_filepath = Path("data/raw") / filename_base
     enriched_filepath = Path("data/processed") / filename_base
 
+    # Ensure the processed data directory exists before any writes
+    enriched_filepath.parent.mkdir(parents=True, exist_ok=True)
+
     req_start = datetime.strptime(pair_config["start"], "%Y-%m-%d").date()
     req_end = datetime.strptime(pair_config["end"], "%Y-%m-%d").date()
 
-    if not _check_file_date_range(enriched_filepath, req_start, req_end):
+    if force_reprocess or not _check_file_date_range(enriched_filepath, req_start, req_end):
         if not _check_file_date_range(raw_filepath, req_start, req_end):
             print(f"[INFO] Raw data for {pair_config['symbol']} is missing or outdated.")
             download_data_for_pair(pair_config)
         
         print(f"[INFO] Processing indicators for {pair_config['symbol']}...")
         raw_data = load_data(raw_filepath)
+        if raw_data.empty:
+            print(f"[ERROR] Raw data for {pair_config['symbol']} is empty. Skipping indicator processing.")
+            return None
         indicator_processor = IndicatorProcessor(raw_data)
         enriched_data = indicator_processor.process(indicator_configs)
-        enriched_filepath.parent.mkdir(parents=True, exist_ok=True)
         indicator_processor.save_to_csv(enriched_filepath)
     
     print(f"[INFO] Valid enriched data found for {pair_config['symbol']}.")
-    return load_data(enriched_filepath)
+    final_data = load_data(enriched_filepath)
+    return final_data
 
 
 def run_download_process(force_download=False):

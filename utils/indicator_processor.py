@@ -1,5 +1,5 @@
 import pandas as pd
-import pandas_ta as ta
+from .indicators import ma_high, ma_low, calculate_supertrend
 
 class IndicatorProcessor:
     def __init__(self, data):
@@ -7,30 +7,35 @@ class IndicatorProcessor:
 
     def process(self, indicator_configs):
         """
-        Processes a list of indicator configurations using pandas-ta.
+        Processes a list of indicator configurations.
 
         :param indicator_configs: A list of dicts, e.g.,
-          [{'name': 'sma', 'length': 50}, {'name': 'ema', 'length': 20}]
+          [{'name': 'ma_high', 'period': 20}, {'name': 'supertrend', 'period': 10, 'multiplier': 3}]
         """
         for config in indicator_configs:
-            name = config.pop("name", "").lower()
+            name = config.get("name", "").lower()
             if not name:
                 print("Warning: Indicator config missing 'name'.")
                 continue
 
-            # Check if the indicator exists in pandas_ta
-            if hasattr(self.data.ta, name):
-                try:
-                    # Call the indicator function with its parameters
-                    getattr(self.data.ta, name)(**config, append=True)
-                    print(f"Added {name.upper()} with params: {config}")
-                except Exception as e:
-                    print(f"Error adding indicator '{name}': {e}")
-            else:
-                print(f"Warning: Indicator '{name}' not recognized by pandas-ta.")
+            try:
+                if name == "ma_high":
+                    period = config.get("period", 20)
+                    self.data[f'ma{period}high'] = ma_high(self.data, period)
+                elif name == "ma_low":
+                    period = config.get("period", 20)
+                    self.data[f'ma{period}low'] = ma_low(self.data, period)
+                elif name == "supertrend":
+                    period = config.get("period", 10)
+                    multiplier = config.get("multiplier", 3)
+                    self.data = calculate_supertrend(self.data, period, multiplier)
+                else:
+                    print(f"Warning: Indicator '{name}' not recognized.")
+            except Exception as e:
+                print(f"Error adding indicator '{name}': {e}")
 
         # Drop rows with NaN values resulting from indicator calculations
-        self.data.dropna(inplace=True)
+        # self.data.dropna(inplace=True) # Temporarily commented out for debugging
         self.data.reset_index(drop=True, inplace=True)
         return self.data
 
