@@ -12,17 +12,17 @@ Path(SAVE_PATH).mkdir(parents=True, exist_ok=True)
 
 
 def parse_date(date_str):
-    return int(datetime.strptime(date_str, "%Y-%m-%d").timestamp() * 1000)
+    return int(datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S").timestamp() * 1000)
 
 
 def _fetch_ohlcv(exchange, symbol, timeframe, since_ms, until_ms):
     """Internal function to fetch data from the exchange."""
     all_data = []
-    limit = 1000
+    limit = 100000
     while since_ms < until_ms:
         try:
             data = exchange.fetch_ohlcv(
-                symbol, timeframe=timeframe, since=since_ms, limit=limit
+                symbol, timeframe=timeframe, since=since_ms, limit=limit, params={"until": until_ms}
             )
             if not data:
                 break
@@ -56,8 +56,8 @@ def download_data_for_pair(pair_config):
     exchange = ccxt.bybit({"enableRateLimit": True, "options": {"defaultType": "spot"}})
     symbol = pair_config["symbol"]
     timeframe = pair_config["timeframe"]
-    since_ms = parse_date(pair_config["start"])
-    until_ms = parse_date(pair_config["end"])
+    since_ms = parse_date(f"{pair_config["start"]} 00:00:00")
+    until_ms = parse_date(f"{pair_config["end"]} 23:59:59")
 
     print(f"[FETCHING] {symbol} {timeframe} from {pair_config['start']} to {pair_config['end']}")
     data = _fetch_ohlcv(exchange, symbol, timeframe, since_ms, until_ms)
