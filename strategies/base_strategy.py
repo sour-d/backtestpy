@@ -85,6 +85,6 @@ class BaseStrategy(ABC):
 
         # Close any open position at the end of the backtest
         if self.portfolio.current_trade:
-            self._liquidate(self.env.now["close"], reason="end_of_data")
+            self._liquidate(self.env.now[self.env.primary_timeframe]["close"], reason="end_of_data")
 
         return self.portfolio.summary()

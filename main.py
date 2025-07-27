@@ -17,12 +17,14 @@ def to_snake_case(name):
     return re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1).lower()
 
 
-def initialize_components(config, enriched_data):
+def initialize_components(config, pair_config, enriched_data):
     """Initializes the environment, portfolio, and strategy."""
-    env = TradingEnvironment(enriched_data)
+    primary_timeframe = pair_config["timeframes"][0] # Assuming the first timeframe in the list is the primary
+    env = TradingEnvironment(enriched_data, primary_timeframe)
     portfolio = Portfolio(
         capital=config["portfolio"]["initial_capital"],
         fee_pct=config["portfolio"]["fee_pct"],
+        risk_pct=config["portfolio"]["risk_pct"],
     )
 
     strategy_config = config["strategy"]
@@ -58,13 +60,13 @@ def run_backtest_for_pair(pair_config, config):
     """Runs the full backtest process for a single trading pair."""
     print(f"\n--- Preparing Data for {pair_config['symbol']} ---")
     # Pass a deep copy of the indicators config to prevent in-place modification issues
-    enriched_data = prepare_data_for_backtest(pair_config, copy.deepcopy(config["indicators"]), force_reprocess=True)
+    enriched_data = prepare_data_for_backtest(pair_config, copy.deepcopy(config["indicators"]), force_reprocess=False)
     
-    if enriched_data is None or enriched_data.empty:
+    if enriched_data is None or not enriched_data: # Check if dictionary is empty
         print(f"[ERROR] Could not prepare data for {pair_config['symbol']}. Skipping backtest.")
         return
         
-    strategy = initialize_components(config, enriched_data)
+    strategy = initialize_components(config, pair_config, enriched_data)
     run_and_save_results(strategy, pair_config)
 
 

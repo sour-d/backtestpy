@@ -101,6 +101,9 @@ def calculate_supertrend(df, period=10, multiplier=3):
 
     return df
 
+def exponential_moving_average(data, period, column='close'):
+    return data[column].ewm(span=period, adjust=False).mean()
+
 def high_of_last(data, days):
     if len(data) < days:
         return None

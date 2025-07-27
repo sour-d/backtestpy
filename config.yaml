@@ -2,20 +2,22 @@
 # The backtest can be run on a specific pair using its index (e.g., `make run index=0`)
 # or on all of them (`make run index=all`).
 trading_pairs:
-  - { 
+  - {
       symbol: "BTC/USDT",
       timeframe: "1h",
+      timeframes: ["1h", "4h"],
       start: "2024-01-01",
       end: "2024-12-31",
     }
-  - { 
+  - {
       symbol: "ETH/USDT",
       timeframe: "1h",
+      timeframes: ["1h", "4h"],
       start: "2024-01-01",
       end: "2024-12-31",
     }
 
-# --- Indicator Pre-processing --- 
+# --- Indicator Pre-processing ---
 # These indicators will be calculated for the selected trading pair.
 indicators:
   # Moving Averages
@@ -25,16 +27,29 @@ indicators:
   # SuperTrend
   - { name: "supertrend", period: 10, multiplier: 2 }
 
+  # EMAs for lower timeframe entry
+  - { name: "EMA", period: 12 }
+  - { name: "EMA", period: 26 }
+
 # --- Portfolio Configuration ---
 portfolio:
   initial_capital: 100000
-  fee_pct: 0.1
+  fee_pct: 0.05
+  risk_pct: 1 # New: Risk percentage per trade
 
 # --- Strategy Configuration ---
 # This strategy will be applied to the selected trading pair(s).
+# strategy:
+#   class_name: "MovingAverageStrategy"
+#   parameters:
+#     ma_period: 20
+#     supertrend_period: 10
+#     supertrend_multiplier: 3
+
 strategy:
-  class_name: "MovingAverageStrategy"
+  class_name: "MultiTimeframeMomentumStrategy"
   parameters:
-    ma_period: 20
-    supertrend_period: 10
-    supertrend_multiplier: 3
+    higher_timeframe: "4h"
+    ema_fast_col: "EMA_12"
+    ema_slow_col: "EMA_26"
+    take_profit_pct: 0.01 # 2% take profit

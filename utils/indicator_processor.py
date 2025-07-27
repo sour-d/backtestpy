@@ -1,5 +1,5 @@
 import pandas as pd
-from .indicators import ma_high, ma_low, calculate_supertrend
+from .indicators import ma_high, ma_low, calculate_supertrend, exponential_moving_average
 
 class IndicatorProcessor:
     def __init__(self, data):
@@ -29,13 +29,20 @@ class IndicatorProcessor:
                     period = config.get("period", 10)
                     multiplier = config.get("multiplier", 3)
                     self.data = calculate_supertrend(self.data, period, multiplier)
+                elif name == "ema":
+                    period = config.get("period")
+                    if period is None:
+                        print(f"Warning: EMA indicator config missing 'period'. Skipping.")
+                        continue
+                    column = config.get("column", "close")
+                    self.data[f'EMA_{period}'] = exponential_moving_average(self.data, period, column)
                 else:
                     print(f"Warning: Indicator '{name}' not recognized.")
             except Exception as e:
                 print(f"Error adding indicator '{name}': {e}")
 
         # Drop rows with NaN values resulting from indicator calculations
-        # self.data.dropna(inplace=True) # Temporarily commented out for debugging
+        self.data.dropna(inplace=True) # Re-enable dropping NaNs
         self.data.reset_index(drop=True, inplace=True)
         return self.data
 
