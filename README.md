@@ -1,16 +1,17 @@
-# Backtesty - Advanced Trading Strategy Backtester
+# Backtesty - Advanced Multi-Timeframe Trading Strategy Backtester
 
-A powerful, flexible backtesting framework for cryptocurrency trading strategies that combines high-performance vectorized indicator calculations with event-driven strategy execution.
+A powerful, flexible backtesting framework for cryptocurrency trading strategies that combines multi-timeframe analysis, sophisticated risk management, and high-performance vectorized calculations.
 
-## 🚀 Features
+## 🚀 Key Features
 
-- **Hybrid Architecture**: Pre-calculated indicators + event-driven backtesting for optimal performance and flexibility
-- **Multi-Asset Support**: Test strategies across multiple trading pairs simultaneously
-- **Rich Indicator Library**: Built-in technical indicators (SMA, EMA, RSI, MACD, Bollinger Bands, etc.)
+- **Multi-Timeframe Architecture**: Analyze higher timeframes for trends, execute on lower timeframes
+- **Advanced Risk Management**: Position sizing based on actual stop loss distances and fixed risk percentages
+- **Hybrid Performance**: Pre-calculated indicators + event-driven backtesting for optimal speed and flexibility
+- **Multi-Asset Support**: Test strategies across multiple trading pairs and timeframes simultaneously
+- **Rich Indicator Library**: Built-in technical indicators (SMA, EMA, RSI, MACD, SuperTrend, etc.)
 - **Configurable Everything**: Single YAML configuration file controls all aspects of your backtest
-- **Advanced Portfolio Management**: Position sizing, risk management, and fee calculation
-- **Visualization**: Interactive trading charts and performance analytics
-- **Easy Strategy Development**: Clean, intuitive strategy API
+- **Professional Portfolio Management**: Proper position sizing, risk control, and comprehensive fee calculation
+- **Strategy Templates**: MovingAverageStrategy and MultiTimeframeMomentumStrategy included
 
 ## 📁 Project Structure
 
@@ -27,7 +28,10 @@ backtesty/
 │   ├── processed/          # Data with calculated indicators
 │   └── result/             # Backtest results and reports
 ├── strategies/             # Trading strategy implementations
-│   ├── base_strategy.py    # Base strategy class
+│   ├── base_strategy.py    # Base strategy class with risk management
+│   ├── multi_timeframe_base_strategy.py  # Multi-timeframe base
+│   ├── moving_average_strategy.py        # MA strategy with proper stops
+│   ├── multi_timeframe_momentum_strategy.py  # Multi-TF momentum
 │   └── sma_crossover_strategy.py
 ├── portfolio/              # Portfolio management
 ├── env/                    # Trading environment simulation
@@ -76,39 +80,37 @@ Results are saved to `data/result/` and include:
 The entire framework is controlled through `config.yaml`:
 
 ```yaml
-# Trading pairs to test
+# Trading pairs to test with multiple timeframes
 trading_pairs:
-  - {
-      symbol: "BTC/USDT",
-      timeframe: "1h",
-      start: "2022-01-01",
-      end: "2023-12-31",
-    }
-  - {
-      symbol: "ETH/USDT",
-      timeframe: "1h",
-      start: "2022-01-01",
-      end: "2022-12-31",
-    }
+  - { symbol: "BTC/USDT", timeframes: [
+          "1h",
+          "4h",
+          "1d",
+        ], start: "2024-01-01", end: "2024-12-31", prefix: "BTC_2024" } # Multiple timeframes
 
-# Pre-calculate these indicators
+# Pre-calculate these indicators for all timeframes
 indicators:
-  - { name: "SMA", period: 50 }
-  - { name: "SMA", period: 200 }
-  - { name: "RSI", period: 14 }
+  - { name: "ma_high", period: 20 }
+  - { name: "ma_low", period: 20 }
+  - { name: "supertrend", period: 10, multiplier: 2 }
+  - { name: "EMA", period: 12 }
+  - { name: "EMA", period: 26 }
 
-# Portfolio settings
+# Portfolio settings with proper risk management
 portfolio:
   initial_capital: 100000
-  fee_pct: 0.1
+  fee_pct: 0.05 # 0.05% fee per trade
+  risk_pct: 5 # Risk 5% of capital per trade
 
-# Strategy configuration
+# Strategy configuration with timeframe specification
 strategy:
-  class_name: "SMACrossoverStrategy"
+  class_name: "MultiTimeframeMomentumStrategy"
+  timeframe: "1h" # Primary execution timeframe
   parameters:
-    fast_sma_col: "SMA_50"
-    slow_sma_col: "SMA_200"
-    risk_pct: 0.01
+    higher_timeframe: "4h" # Trend analysis timeframe
+    ema_fast_col: "EMA_12"
+    ema_slow_col: "EMA_26"
+    take_profit_pct: 0.02
 ```
 
 ## 📖 Strategy Development
@@ -118,24 +120,41 @@ For detailed instructions on creating custom trading strategies, see our compreh
 ### Quick Example
 
 ```python
-from .base_strategy import BaseStrategy
+from .multi_timeframe_base_strategy import MultiTimeframeBaseStrategy
 
-class MyStrategy(BaseStrategy):
+class MyMultiTimeframeStrategy(MultiTimeframeBaseStrategy):
+    def __init__(self, env, portfolio, **params):
+        super().__init__(env, portfolio, **params)
+        self.primary_tf = self.env.primary_timeframe  # e.g., "1h"
+        self.higher_tf = self.params.get("higher_timeframe", "4h")
+
     def buy_signal(self):
-        now = self.env.now
-        # Access pre-calculated indicators
-        if now['close'] > now['SMA_50']:
-            return now['close']  # Buy at current price
-        return None
+        # Get current data for primary timeframe
+        current_data = self.env.now[self.primary_tf]
+        # Get higher timeframe data for trend analysis
+        higher_tf_data = self.env.now[self.higher_tf]
+
+        if (higher_tf_data['superTrendDirection'] == 'Buy' and
+            current_data['EMA_12'] > current_data['EMA_26']):
+            # Return both entry price and stop loss
+            entry_price = current_data['close']
+            stop_loss = current_data['close'] * 0.97  # 3% stop
+            return entry_price, stop_loss
+        return None, None
 
     def sell_signal(self):
-        # Implement short selling logic
-        return None
+        # Implement short selling logic with proper stop loss
+        return None, None
 
     def close_long_signal(self):
-        now = self.env.now
-        if now['close'] < now['SMA_50']:
-            return now['close'], "stop_loss"
+        current_data = self.env.now[self.primary_tf]
+        if not self.portfolio.current_trade:
+            return None, None
+
+        # Take profit at 2%
+        take_profit = self.portfolio.current_trade["entry_price"] * 1.02
+        if current_data['close'] >= take_profit:
+            return current_data['close'], "take_profit"
         return None, None
 
     def close_short_signal(self):
@@ -144,18 +163,32 @@ class MyStrategy(BaseStrategy):
 
 ## 🎯 Available Strategies
 
-- **SMA Crossover**: Moving average crossover strategy
-- **Base Strategy**: Template for custom strategies
+- **MovingAverageStrategy**: Single timeframe MA strategy with adaptive stop losses
+- **MultiTimeframeMomentumStrategy**: Higher timeframe trend + lower timeframe execution
+- **SMA Crossover**: Classic moving average crossover strategy
+- **Base Strategy Templates**: For custom single and multi-timeframe strategies
+
+## 🚀 Risk Management Features
+
+- **Fixed Risk Percentage**: Risk a consistent percentage of capital per trade
+- **Position Sizing**: Automatically calculates quantity based on stop loss distance
+- **Adaptive Stops**: Combines technical levels with percentage-based stops
+- **Professional Risk Control**: Never risk more than your defined percentage
+
+## 📊 Multi-Timeframe Capabilities
+
+- **Trend Analysis**: Use higher timeframes (4h, 1d) for trend direction
+- **Execution Precision**: Execute trades on lower timeframes (1h, 5m) for better fills
+- **Data Synchronization**: Automatically handles timeframe alignment
+- **Flexible Configuration**: Mix and match any timeframe combinations
 
 ## 📊 Supported Indicators
 
-- Simple Moving Average (SMA)
-- Exponential Moving Average (EMA)
-- Relative Strength Index (RSI)
-- MACD (Moving Average Convergence Divergence)
-- Bollinger Bands
-- Average True Range (ATR)
-- And more...
+- **Moving Averages**: SMA, EMA, ma_high, ma_low
+- **Trend Indicators**: SuperTrend, MACD
+- **Momentum**: RSI, Stochastic
+- **Volatility**: Bollinger Bands, ATR
+- **Custom Indicators**: Easy to add via indicator processor
 
 ## 🔧 Available Commands
 
