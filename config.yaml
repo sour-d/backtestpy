@@ -4,17 +4,24 @@
 trading_pairs:
   - {
       symbol: "BTC/USDT",
-      timeframe: "1h",
       timeframes: ["1h", "4h"],
       start: "2024-01-01",
       end: "2024-12-31",
+      prefix: "BTC_2024",
     }
   - {
-      symbol: "ETH/USDT",
-      timeframe: "1h",
+      symbol: "BTC/USDT",
       timeframes: ["1h", "4h"],
-      start: "2024-01-01",
-      end: "2024-12-31",
+      start: "2023-01-01",
+      end: "2023-12-31",
+      prefix: "BTC_2023",
+    }
+  - {
+      symbol: "BTC/USDT",
+      timeframes: ["1h", "4h"],
+      start: "2022-01-01",
+      end: "2022-12-31",
+      prefix: "BTC_2022",
     }
 
 # --- Indicator Pre-processing ---

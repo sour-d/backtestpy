@@ -86,15 +86,14 @@ def _fetch_ohlcv(exchange, symbol, timeframe, since_ms, until_ms, pair_config):
     return deduplicated_data
 
 
-def _save_to_csv(symbol, timeframe, data):
+def _save_to_csv(pair_config, data):
     """Internal function to save DataFrame to CSV."""
     df = pd.DataFrame(
         data, columns=["timestamp", "open", "high", "low", "close", "volume"]
     )
     df["datetime"] = pd.to_datetime(df["timestamp"], unit="ms")
-    filename = get_pair_filename({"symbol": symbol, "timeframe": timeframe})
+    filename = get_pair_filename(pair_config)
     df.to_csv(os.path.join(SAVE_PATH, filename), index=False)
-    print(f"[SAVED] {filename}")
 
 
 def download_data_for_pair(pair_config):
@@ -107,9 +106,8 @@ def download_data_for_pair(pair_config):
     since_ms = parse_date(f"{pair_config["start"]} 00:00:00")
     until_ms = parse_date(f"{pair_config["end"]} 23:59:59")
 
-    print(f"[FETCHING] {symbol} {timeframe} from {pair_config['start']} to {pair_config['end']}")
     data = _fetch_ohlcv(exchange, symbol, timeframe, since_ms, until_ms, pair_config)
     if data:
-        _save_to_csv(symbol, timeframe, data)
+        _save_to_csv(pair_config, data)
     else:
-        print(f"[INFO] No data returned for {symbol}.")
+        raise Exception(f"No data returned for {symbol} {timeframe}")
