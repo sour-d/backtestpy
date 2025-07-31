@@ -4,39 +4,67 @@
 trading_pairs:
   - {
       symbol: "BTC/USDT",
-      timeframes: ["1h", "4h", "1d"],
-      start: "2025-01-01",
-      end: "2025-07-31",
-      prefix: "BTC_2025",
-    }
-  - {
-      symbol: "BTC/USDT",
-      timeframes: ["1h", "4h", "1d"],
-      start: "2024-01-01",
-      end: "2024-12-31",
-      prefix: "BTC_2024",
-    }
-  - {
-      symbol: "BTC/USDT",
-      timeframes: ["1h", "4h", "1d"],
-      start: "2023-01-01",
-      end: "2023-12-31",
-      prefix: "BTC_2023",
-    }
-  - {
-      symbol: "BTC/USDT",
-      timeframes: ["1h", "4h", "1d"],
-      start: "2022-01-01",
-      end: "2022-12-31",
-      prefix: "BTC_2022",
-    }
-  - {
-      symbol: "BTC/USDT",
-      timeframes: ["1h", "4h", "1d"],
+      timeframes: ["1d"],
       start: "2021-01-01",
-      end: "2021-12-31",
-      prefix: "BTC_2021",
+      end: "2025-07-31",
+      prefix: "BTC_all",
     }
+  - {
+      symbol: "ETH/USDT",
+      timeframes: ["1d"],
+      start: "2021-01-01",
+      end: "2025-12-31",
+      prefix: "ETH_all",
+    }
+  - {
+      symbol: "SOL/USDT",
+      timeframes: ["1d"],
+      start: "2021-01-01",
+      end: "2025-12-31",
+      prefix: "SOL_all",
+    }
+  - {
+      symbol: "GALA/USDT",
+      timeframes: ["1d"],
+      start: "2021-01-01",
+      end: "2025-12-31",
+      prefix: "GALA_all",
+    }
+  - {
+      symbol: "XRP/USDT",
+      timeframes: ["1d"],
+      start: "2021-01-01",
+      end: "2025-12-31",
+      prefix: "XRP_all",
+    }
+  - {
+      symbol: "LTC/USDT",
+      timeframes: ["1d"],
+      start: "2021-01-01",
+      end: "2025-12-31",
+      prefix: "LTC_all",
+    }
+  - {
+      symbol: "BNB/USDT",
+      timeframes: ["1d"],
+      start: "2021-01-01",
+      end: "2025-12-31",
+      prefix: "BNB_all",
+    }
+  - {
+      symbol: "ADA/USDT",
+      timeframes: ["1d"],
+      start: "2021-01-01",
+      end: "2025-12-31",
+      prefix: "ADA_all",
+    }
+  - {
+      symbol: "DOT/USDT",
+      timeframes: ["1d"],
+      start: "2021-01-01",
+      end: "2025-12-31",
+      prefix: "DOT_all",
+  }
 
 # --- Indicator Pre-processing ---
 # These indicators will be calculated for the selected trading pair.
