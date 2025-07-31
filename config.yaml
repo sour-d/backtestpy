@@ -56,7 +56,7 @@ indicators:
 portfolio:
   initial_capital: 100000
   fee_pct: 0.05
-  risk_pct: 1 # New: Risk percentage per trade
+  risk_pct: 5 # New: Risk percentage per trade
 
 # --- Strategy Configuration ---
 # This strategy will be applied to the selected trading pair(s).

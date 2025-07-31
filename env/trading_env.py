@@ -51,7 +51,20 @@ class TradingEnvironment:
         current_datetime = self.data.index[self.current_step]
         
         # Find the index in the target timeframe that corresponds to current_datetime
-        idx_in_target_tf = df.index.get_loc(current_datetime, method='pad') # 'pad' means use previous if exact not found
+        # Use searchsorted to find the position, then handle edge cases
+        try:
+            idx_in_target_tf = df.index.get_indexer([current_datetime], method='pad')[0]
+            if idx_in_target_tf == -1:  # No valid index found
+                return None
+        except:
+            # Fallback: find the closest index manually
+            try:
+                idx_in_target_tf = df.index.get_loc(current_datetime)
+            except KeyError:
+                # If exact match not found, find the nearest previous timestamp
+                idx_in_target_tf = df.index.searchsorted(current_datetime) - 1
+                if idx_in_target_tf < 0:
+                    return None
         
         if idx_in_target_tf - n < 0:
             return None

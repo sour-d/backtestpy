@@ -12,19 +12,32 @@ class Portfolio:
         self.current_trade = None
         self.trades = []
 
-    def _calculate_buy_quantity(self, risk_per_stock, price):
-        max_by_cap = self.capital / price
-        max_by_risk = self.risk_per_trade / risk_per_stock
-        affordable = min(max_by_cap, max_by_risk)
-        return max(0, round(affordable, 2))
+    def _calculate_position_size(self, risk_per_share, price):
+        """Calculate position size based on fixed risk amount."""
+        # Fixed risk amount based on initial capital
+        max_risk_amount = self.risk_per_trade
+        
+        # Calculate max position size based on risk management
+        if risk_per_share <= 0:
+            return 0
+            
+        max_by_risk = max_risk_amount / risk_per_share
+        
+        # Calculate max position size based on available capital
+        max_by_capital = self.capital / price
+        
+        # Take the minimum to ensure we don't exceed either constraint
+        position_size = min(max_by_risk, max_by_capital)
+        
+        return max(0, round(position_size, 2))
 
     def open_position(
-        self, trade_type, price, risk_amount, entry_date, entry_step
+        self, trade_type, price, stop_loss, risk_per_share, entry_date, entry_step
     ):
         if self.current_trade:
             return  # Already in a trade
 
-        qty = self._calculate_buy_quantity(risk_amount, price)
+        qty = self._calculate_position_size(risk_per_share, price)
         if qty == 0:
             return
 
@@ -34,14 +47,17 @@ class Portfolio:
         self.capital -= trade_value + entry_fee
         self.total_fees_paid += entry_fee
 
+        # Calculate actual risk taken (should be close to risk_per_trade for proper sizing)
+        actual_risk_taken = qty * risk_per_share
+
         self.current_trade = {
             "entry_price": price,
             "quantity": qty,
             "type": trade_type,
-            "stop_loss": price - risk_amount
-            if trade_type == "buy"
-            else price + risk_amount,
-            "risk_taken": risk_amount,
+            "stop_loss": stop_loss if stop_loss is not None else (
+                price - risk_per_share if trade_type == "buy" else price + risk_per_share
+            ),
+            "risk_taken": actual_risk_taken,
             "entry_step": entry_step,
             "entry_date": entry_date,
             "entry_fee": entry_fee,

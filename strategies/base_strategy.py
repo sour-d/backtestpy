@@ -12,7 +12,8 @@ class BaseStrategy(ABC):
     def buy_signal(self):
         """
         Define the conditions for entering a long position.
-        Should return a price or None.
+        Should return a tuple of (price, stop_loss) or (None, None).
+        For backward compatibility, can also return just price or None.
         """
         pass
 
@@ -20,7 +21,8 @@ class BaseStrategy(ABC):
     def sell_signal(self):
         """
         Define the conditions for entering a short position.
-        Should return a price or None.
+        Should return a tuple of (price, stop_loss) or (None, None).
+        For backward compatibility, can also return just price or None.
         """
         pass
 
@@ -40,12 +42,19 @@ class BaseStrategy(ABC):
         """
         pass
 
-    def _take_position(self, trade_type, price):
-        risk_amount = price * self.risk_pct
+    def _take_position(self, trade_type, price, stop_loss=None):
+        # Calculate risk per share (difference between entry and stop loss)
+        if stop_loss is None:
+            # Fallback: use default risk percentage if no stop loss provided
+            risk_per_share = price * self.risk_pct
+        else:
+            risk_per_share = abs(price - stop_loss)
+        
         self.portfolio.open_position(
             trade_type=trade_type,
             price=price,
-            risk_amount=risk_amount,
+            stop_loss=stop_loss,
+            risk_per_share=risk_per_share,
             entry_date=self.env.get_current_date(),
             entry_step=self.env.current_step,
         )
@@ -73,13 +82,28 @@ class BaseStrategy(ABC):
                         self._liquidate(exit_price, reason)
             else:
                 # Check for entry signals if not in a trade
-                buy_price = self.buy_signal()
-                if buy_price:
-                    self._take_position("buy", buy_price)
+                buy_result = self.buy_signal()
+                if isinstance(buy_result, tuple) and len(buy_result) == 2:
+                    buy_price, stop_loss = buy_result
+                    if buy_price:
+                        self._take_position("buy", buy_price, stop_loss)
                 else:
-                    sell_price = self.sell_signal()
-                    if sell_price:
-                        self._take_position("sell", sell_price)
+                    # Handle legacy single return value
+                    buy_price = buy_result
+                    if buy_price:
+                        self._take_position("buy", buy_price)
+                
+                if not self.portfolio.current_trade:  # Only check sell if no buy position was taken
+                    sell_result = self.sell_signal()
+                    if isinstance(sell_result, tuple) and len(sell_result) == 2:
+                        sell_price, stop_loss = sell_result
+                        if sell_price:
+                            self._take_position("sell", sell_price, stop_loss)
+                    else:
+                        # Handle legacy single return value
+                        sell_price = sell_result
+                        if sell_price:
+                            self._take_position("sell", sell_price)
 
             self.env.move()
 
