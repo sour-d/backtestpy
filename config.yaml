@@ -4,24 +4,38 @@
 trading_pairs:
   - {
       symbol: "BTC/USDT",
-      timeframes: ["1h", "4h"],
+      timeframes: ["1h", "4h", "1d"],
+      start: "2025-01-01",
+      end: "2025-07-31",
+      prefix: "BTC_2025",
+    }
+  - {
+      symbol: "BTC/USDT",
+      timeframes: ["1h", "4h", "1d"],
       start: "2024-01-01",
       end: "2024-12-31",
       prefix: "BTC_2024",
     }
   - {
       symbol: "BTC/USDT",
-      timeframes: ["1h", "4h"],
+      timeframes: ["1h", "4h", "1d"],
       start: "2023-01-01",
       end: "2023-12-31",
       prefix: "BTC_2023",
     }
   - {
       symbol: "BTC/USDT",
-      timeframes: ["1h", "4h"],
+      timeframes: ["1h", "4h", "1d"],
       start: "2022-01-01",
       end: "2022-12-31",
       prefix: "BTC_2022",
+    }
+  - {
+      symbol: "BTC/USDT",
+      timeframes: ["1h", "4h", "1d"],
+      start: "2021-01-01",
+      end: "2021-12-31",
+      prefix: "BTC_2021",
     }
 
 # --- Indicator Pre-processing ---
@@ -46,17 +60,18 @@ portfolio:
 
 # --- Strategy Configuration ---
 # This strategy will be applied to the selected trading pair(s).
-# strategy:
-#   class_name: "MovingAverageStrategy"
-#   parameters:
-#     ma_period: 20
-#     supertrend_period: 10
-#     supertrend_multiplier: 3
-
 strategy:
-  class_name: "MultiTimeframeMomentumStrategy"
+  class_name: "MovingAverageStrategy"
+  timeframe: "1d" # Specify which timeframe to use for trading
   parameters:
-    higher_timeframe: "4h"
-    ema_fast_col: "EMA_12"
-    ema_slow_col: "EMA_26"
-    take_profit_pct: 0.01 # 2% take profit
+    ma_period: 20
+    supertrend_period: 10
+    supertrend_multiplier: 3
+# strategy:
+#   class_name: "MultiTimeframeMomentumStrategy"
+#   timeframe: "1h"
+#   parameters:
+#     higher_timeframe: "4h"
+#     ema_fast_col: "EMA_12"
+#     ema_slow_col: "EMA_26"
+#     take_profit_pct: 0.01 # 2% take profit

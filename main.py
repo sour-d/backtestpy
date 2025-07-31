@@ -19,7 +19,11 @@ def to_snake_case(name):
 
 def initialize_components(config, pair_config, enriched_data):
     """Initializes the environment, portfolio, and strategy."""
-    primary_timeframe = pair_config["timeframes"][0] # Assuming the first timeframe in the list is the primary
+    strategy_config = config["strategy"]
+    # Use the strategy's configured timeframe as primary, fallback to first timeframe
+    primary_timeframe = strategy_config.get("timeframe", pair_config["timeframes"][0])
+    print(f"\n📊 Using primary timeframe: {primary_timeframe}")
+    
     env = TradingEnvironment(enriched_data, primary_timeframe)
     portfolio = Portfolio(
         capital=config["portfolio"]["initial_capital"],
@@ -27,7 +31,6 @@ def initialize_components(config, pair_config, enriched_data):
         risk_pct=config["portfolio"]["risk_pct"],
     )
 
-    strategy_config = config["strategy"]
     strategy_class_name = strategy_config["class_name"]
     strategy_params = strategy_config["parameters"]
     strategy_module_name = to_snake_case(strategy_class_name)
@@ -38,13 +41,20 @@ def initialize_components(config, pair_config, enriched_data):
     return StrategyClass(env, portfolio, **strategy_params)
 
 
-def run_and_save_results(strategy, pair_config):
+def run_and_save_results(strategy, pair_config, config):
     """Runs the backtest and saves the results."""
     print(f"\n--- Running Backtest: {strategy.__class__.__name__} on {pair_config['symbol']} ---")
     summary = strategy.run_backtest()
 
-    # Save results
-    filename_base = f"{pair_config['symbol'].replace('/', '').lower()}_{pair_config['timeframe']}.csv"
+    # Save results - use prefix and primary timeframe for filename
+    primary_timeframe = config["strategy"].get("timeframe", pair_config["timeframes"][0])
+    
+    # Use prefix if available, otherwise fall back to symbol
+    if "prefix" in pair_config and pair_config["prefix"]:
+        filename_base = f"{pair_config['prefix']}_{primary_timeframe}.csv"
+    else:
+        filename_base = f"{pair_config['symbol'].replace('/', '').lower()}_{primary_timeframe}.csv"
+    
     result_filepath = Path("data/result") / filename_base
     result_filepath.parent.mkdir(parents=True, exist_ok=True)
     
@@ -59,6 +69,8 @@ def run_and_save_results(strategy, pair_config):
 def run_backtest_for_pair(pair_config, config):
     """Runs the full backtest process for a single trading pair."""
     print(f"\n--- Preparing Data for {pair_config['symbol']} ---")
+    print(f"📈 Available timeframes: {pair_config['timeframes']}")
+    
     # Pass a deep copy of the indicators config to prevent in-place modification issues
     enriched_data = prepare_data_for_backtest(pair_config, copy.deepcopy(config["indicators"]), force_reprocess=False)
     
@@ -67,7 +79,7 @@ def run_backtest_for_pair(pair_config, config):
         return
         
     strategy = initialize_components(config, pair_config, enriched_data)
-    run_and_save_results(strategy, pair_config)
+    run_and_save_results(strategy, pair_config, config)
 
 
 def main():

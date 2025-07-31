@@ -38,7 +38,7 @@ def prepare_data_for_backtest(pair_config, indicator_configs, force_reprocess=Fa
     Returns a dictionary of DataFrames, keyed by timeframe.
     """
     all_timeframe_data = {}
-    timeframes = pair_config.get("timeframes", [pair_config["timeframe"]]) # Get all timeframes or default to single
+    timeframes = pair_config.get("timeframes", [pair_config.get("timeframe", "1h")]) # Get all timeframes or default to single
 
     for tf in timeframes:
         # Create a temporary pair_config for the current timeframe

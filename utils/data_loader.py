@@ -9,6 +9,8 @@ def load_data(filepath):
     else:
         df['datetime'] = pd.to_datetime(df['timestamp'], unit='ms')
 
-    
+    # Set datetime as index for time-based operations like asof
+    df.set_index('datetime', inplace=True)
+    df.sort_index(inplace=True)  # Ensure chronological order
 
     return df
