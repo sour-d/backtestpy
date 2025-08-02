@@ -5,66 +5,66 @@ trading_pairs:
   - {
       symbol: "BTC/USDT",
       timeframes: ["1d"],
-      start: "2021-01-01",
-      end: "2025-07-31",
+      start: "2025-01-01",
+      end: "2025-12-31",
       prefix: "BTC_all",
     }
   - {
       symbol: "ETH/USDT",
       timeframes: ["1d"],
-      start: "2021-01-01",
+      start: "2025-01-01",
       end: "2025-12-31",
       prefix: "ETH_all",
     }
   - {
       symbol: "SOL/USDT",
       timeframes: ["1d"],
-      start: "2021-01-01",
+      start: "2025-01-01",
       end: "2025-12-31",
       prefix: "SOL_all",
     }
   - {
       symbol: "GALA/USDT",
       timeframes: ["1d"],
-      start: "2021-01-01",
+      start: "2025-01-01",
       end: "2025-12-31",
       prefix: "GALA_all",
     }
   - {
       symbol: "XRP/USDT",
       timeframes: ["1d"],
-      start: "2021-01-01",
+      start: "2025-01-01",
       end: "2025-12-31",
       prefix: "XRP_all",
     }
   - {
       symbol: "LTC/USDT",
       timeframes: ["1d"],
-      start: "2021-01-01",
+      start: "2025-01-01",
       end: "2025-12-31",
       prefix: "LTC_all",
     }
   - {
       symbol: "BNB/USDT",
       timeframes: ["1d"],
-      start: "2021-01-01",
+      start: "2025-01-01",
       end: "2025-12-31",
       prefix: "BNB_all",
     }
   - {
       symbol: "ADA/USDT",
       timeframes: ["1d"],
-      start: "2021-01-01",
+      start: "2025-01-01",
       end: "2025-12-31",
       prefix: "ADA_all",
     }
   - {
       symbol: "DOT/USDT",
       timeframes: ["1d"],
-      start: "2021-01-01",
+      start: "2025-01-01",
       end: "2025-12-31",
       prefix: "DOT_all",
-  }
+    }
 
 # --- Indicator Pre-processing ---
 # These indicators will be calculated for the selected trading pair.
@@ -95,6 +95,7 @@ strategy:
     ma_period: 20
     supertrend_period: 10
     supertrend_multiplier: 3
+    trailing_stop_enabled: true
 # strategy:
 #   class_name: "MultiTimeframeMomentumStrategy"
 #   timeframe: "1h"

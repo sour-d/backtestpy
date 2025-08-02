@@ -122,6 +122,11 @@ class Portfolio:
         self.trades.append(trade_record)
         self.current_trade = None
 
+    def update_stop_loss(self, new_stop_loss):
+        """Update the stop loss for the current trade."""
+        if self.current_trade:
+            self.current_trade["stop_loss"] = new_stop_loss
+
     def close_any_open_trade(self, current_price, current_date, current_step):
         """Close any remaining open trade at the end of backtesting."""
         if self.current_trade:
@@ -387,29 +392,24 @@ class Portfolio:
         if not self.trades:
             return {"max_drawdown": 0.0, "max_drawdown_pct": 0.0}
 
-        # Calculate running capital after each trade
+        capital_history = [self.initial_capital]
         running_capital = self.initial_capital
-        capital_history = [running_capital]
-        peak_capital = running_capital
-        max_drawdown = 0.0
-        max_drawdown_pct = 0.0
-
         for trade in self.trades:
+            capital_history.append(running_capital + trade["net_profit_loss"])
             running_capital += trade["net_profit_loss"]
-            capital_history.append(running_capital)
+
+        peak_capital = self.initial_capital
+        max_drawdown = 0.0
+
+        for capital in capital_history:
+            if capital > peak_capital:
+                peak_capital = capital
             
-            # Update peak
-            if running_capital > peak_capital:
-                peak_capital = running_capital
-            
-            # Calculate current drawdown
-            drawdown = peak_capital - running_capital
-            drawdown_pct = (drawdown / peak_capital) * 100 if peak_capital > 0 else 0
-            
-            # Update maximum drawdown
+            drawdown = peak_capital - capital
             if drawdown > max_drawdown:
                 max_drawdown = drawdown
-                max_drawdown_pct = drawdown_pct
+
+        max_drawdown_pct = (max_drawdown / peak_capital) * 100 if peak_capital > 0 else 0
 
         return {
             "max_drawdown": max_drawdown,

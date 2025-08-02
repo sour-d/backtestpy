@@ -7,6 +7,9 @@ class BaseStrategy(ABC):
         self.portfolio = portfolio
         self.params = params
         self.risk_pct = self.params.get("risk_pct", 0.01)
+        self.trailing_stop_enabled = self.params.get("trailing_stop_enabled", False)
+        self.trailing_stop_pct = self.params.get("trailing_stop_pct", 0.02)  # 2% trailing stop
+        self.debug_trailing_stops = self.params.get("debug_trailing_stops", False)
 
     @abstractmethod
     def buy_signal(self):
@@ -69,6 +72,38 @@ class BaseStrategy(ABC):
             action=reason,
         )
 
+    def _update_trailing_stop(self, trade, current_candle):
+        """Update trailing stop loss based on current price movement."""
+        if not self.trailing_stop_enabled:
+            return
+            
+        current_high = current_candle["high"]
+        current_low = current_candle["low"]
+        current_stop = trade["stop_loss"]
+        new_stop = None
+        
+        if trade["type"] == "buy":
+            # For long positions, trail the stop up when price moves favorably
+            new_trailing_stop = current_high * (1 - self.trailing_stop_pct)
+            
+            # Only update if the new trailing stop is higher than current stop
+            if new_trailing_stop > current_stop:
+                new_stop = new_trailing_stop
+                
+        elif trade["type"] == "sell":
+            # For short positions, trail the stop down when price moves favorably
+            new_trailing_stop = current_low * (1 + self.trailing_stop_pct)
+            
+            # Only update if the new trailing stop is lower than current stop
+            if new_trailing_stop < current_stop:
+                new_stop = new_trailing_stop
+        
+        # Update the stop loss in the portfolio
+        if new_stop is not None:
+            if self.debug_trailing_stops:
+                print(f"📈 Trailing stop updated: {current_stop:.4f} -> {new_stop:.4f} ({trade['type']} position)")
+            self.portfolio.update_stop_loss(new_stop)
+
     def _check_stop_loss(self, trade, current_candle):
         stop_loss_hit = False
         
@@ -80,6 +115,10 @@ class BaseStrategy(ABC):
             if current_candle["high"] >= trade["stop_loss"]:
                 self._liquidate(trade["stop_loss"], "stop_loss")
                 stop_loss_hit = True
+        
+        # Update trailing stop after checking for stop loss
+        if not stop_loss_hit:
+            self._update_trailing_stop(trade, current_candle)
         
         return stop_loss_hit
 
