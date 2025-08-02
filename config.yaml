@@ -1,70 +1,21 @@
-# A list of trading pairs to download and backtest.
-# The backtest can be run on a specific pair using its index (e.g., `make run index=0`)
-# or on all of them (`make run index=all`).
-trading_pairs:
-  - {
-      symbol: "BTC/USDT",
-      timeframes: ["1d"],
-      start: "2025-01-01",
-      end: "2025-12-31",
-      prefix: "BTC_all",
-    }
-  - {
-      symbol: "ETH/USDT",
-      timeframes: ["1d"],
-      start: "2025-01-01",
-      end: "2025-12-31",
-      prefix: "ETH_all",
-    }
-  - {
-      symbol: "SOL/USDT",
-      timeframes: ["1d"],
-      start: "2025-01-01",
-      end: "2025-12-31",
-      prefix: "SOL_all",
-    }
-  - {
-      symbol: "GALA/USDT",
-      timeframes: ["1d"],
-      start: "2025-01-01",
-      end: "2025-12-31",
-      prefix: "GALA_all",
-    }
-  - {
-      symbol: "XRP/USDT",
-      timeframes: ["1d"],
-      start: "2025-01-01",
-      end: "2025-12-31",
-      prefix: "XRP_all",
-    }
-  - {
-      symbol: "LTC/USDT",
-      timeframes: ["1d"],
-      start: "2025-01-01",
-      end: "2025-12-31",
-      prefix: "LTC_all",
-    }
-  - {
-      symbol: "BNB/USDT",
-      timeframes: ["1d"],
-      start: "2025-01-01",
-      end: "2025-12-31",
-      prefix: "BNB_all",
-    }
-  - {
-      symbol: "ADA/USDT",
-      timeframes: ["1d"],
-      start: "2025-01-01",
-      end: "2025-12-31",
-      prefix: "ADA_all",
-    }
-  - {
-      symbol: "DOT/USDT",
-      timeframes: ["1d"],
-      start: "2025-01-01",
-      end: "2025-12-31",
-      prefix: "DOT_all",
-    }
+# --- Backtest Settings ---
+# Define the symbols, timeframes, and periods for the backtest runs.
+backtest_settings:
+  symbols:
+    - "BTC/USDT"
+    - "ETH/USDT"
+    - "SOL/USDT"
+    - "GALA/USDT"
+    - "XRP/USDT"
+    - "LTC/USDT"
+    - "BNB/USDT"
+    - "ADA/USDT"
+    - "DOT/USDT"
+  timeframes:
+    - "1d"
+  periods:
+    # 2025: ["june", "july"]
+    2024: []
 
 # --- Indicator Pre-processing ---
 # These indicators will be calculated for the selected trading pair.
@@ -96,11 +47,4 @@ strategy:
     supertrend_period: 10
     supertrend_multiplier: 3
     trailing_stop_enabled: true
-# strategy:
-#   class_name: "MultiTimeframeMomentumStrategy"
-#   timeframe: "1h"
-#   parameters:
-#     higher_timeframe: "4h"
-#     ema_fast_col: "EMA_12"
-#     ema_slow_col: "EMA_26"
-#     take_profit_pct: 0.01 # 2% take profit
+    trailing_stop_pct: 0.02  # 2% trailing stop

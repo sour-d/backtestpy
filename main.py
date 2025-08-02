@@ -5,6 +5,7 @@ import importlib
 import re
 from pathlib import Path
 import copy
+from calendar import month_name
 
 from env.trading_env import TradingEnvironment
 from portfolio.portfolio import Portfolio
@@ -12,18 +13,12 @@ from utils.data_manager import prepare_data_for_backtest
 
 
 def to_snake_case(name):
-    """Converts a CamelCase name to snake_case."""
     s1 = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", name)
     return re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1).lower()
 
 
-def initialize_components(config, pair_config, enriched_data):
-    """Initializes the environment, portfolio, and strategy."""
+def initialize_components(config, primary_timeframe, enriched_data):
     strategy_config = config["strategy"]
-    # Use the strategy's configured timeframe as primary, fallback to first timeframe
-    primary_timeframe = strategy_config.get("timeframe", pair_config["timeframes"][0])
-    print(f"\n📊 Using primary timeframe: {primary_timeframe}")
-    
     env = TradingEnvironment(enriched_data, primary_timeframe)
     portfolio = Portfolio(
         capital=config["portfolio"]["initial_capital"],
@@ -41,72 +36,56 @@ def initialize_components(config, pair_config, enriched_data):
     return StrategyClass(env, portfolio, **strategy_params)
 
 
-def run_and_save_results(strategy, pair_config, config):
-    """Runs the backtest and saves the results."""
-    print(f"\n--- Running Backtest: {strategy.__class__.__name__} on {pair_config['symbol']} ---")
+def run_and_save_results(strategy, symbol, timeframe, date_range, config):
+    print(f"\n--- Running Backtest: {strategy.__class__.__name__} on {symbol} ({timeframe}) ---")
     summary = strategy.run_backtest()
 
-    # Save results - use prefix and primary timeframe for filename
-    primary_timeframe = config["strategy"].get("timeframe", pair_config["timeframes"][0])
-    
-    # Use prefix if available, otherwise fall back to symbol
-    if "prefix" in pair_config and pair_config["prefix"]:
-        filename_base = f"{pair_config['prefix']}_{primary_timeframe}.csv"
+    if date_range["months"]:
+        filename_base = f"{symbol.replace('/', '-')}_{timeframe}_{date_range['months'][0].lower()}_{date_range['year']}.csv"
     else:
-        filename_base = f"{pair_config['symbol'].replace('/', '').lower()}_{primary_timeframe}.csv"
-    
+        filename_base = f"{symbol.replace('/', '-')}_{timeframe}_{date_range['year']}.csv"
+
     result_filepath = Path("data/result") / filename_base
     result_filepath.parent.mkdir(parents=True, exist_ok=True)
     
     pd.DataFrame(summary["trades"]).to_csv(result_filepath, index=False)
     
-    print(f"\n--- Results for {pair_config['symbol']} ---")
+    print(f"\n--- Results for {symbol} ({timeframe}) ---")
     strategy.portfolio.print_summary()
     print(f"Results saved to {result_filepath}")
     print("--------------------------------------")
-
-
-def run_backtest_for_pair(pair_config, config):
-    """Runs the full backtest process for a single trading pair."""
-    print(f"\n--- Preparing Data for {pair_config['symbol']} ---")
-    print(f"📈 Available timeframes: {pair_config['timeframes']}")
-    
-    # Pass a deep copy of the indicators config to prevent in-place modification issues
-    enriched_data = prepare_data_for_backtest(pair_config, copy.deepcopy(config["indicators"]), force_reprocess=False)
-    
-    if enriched_data is None or not enriched_data: # Check if dictionary is empty
-        print(f"[ERROR] Could not prepare data for {pair_config['symbol']}. Skipping backtest.")
-        return
-        
-    strategy = initialize_components(config, pair_config, enriched_data)
-    run_and_save_results(strategy, pair_config, config)
 
 
 def main():
     with open("config.yaml", "r") as f:
         config = yaml.safe_load(f)
 
-    try:
-        run_arg = sys.argv[1]
-    except IndexError:
-        print("[ERROR] Please specify an index (e.g., 'python main.py all' or 'python main.py 0').")
-        return
+    backtest_settings = config["backtest_settings"]
+    symbols = backtest_settings["symbols"]
+    timeframes = backtest_settings["timeframes"]
+    periods = backtest_settings["periods"]
 
-    trading_pairs = config["trading_pairs"]
-
-    if run_arg.lower() == "all":
-        for pair_config in trading_pairs:
-            run_backtest_for_pair(pair_config, config)
-    else:
-        try:
-            pair_index = int(run_arg)
-            if 0 <= pair_index < len(trading_pairs):
-                run_backtest_for_pair(trading_pairs[pair_index], config)
-            else:
-                print(f"[ERROR] Index {pair_index} is out of bounds.")
-        except ValueError:
-            print(f"[ERROR] Invalid argument '{run_arg}'. Please use 'all' or a valid number.")
-
+    for symbol in symbols:
+        for timeframe in timeframes:
+            for year, months in periods.items():
+                if not months:
+                    date_range = {"year": year, "months": [], "start": f"{year}-01-01", "end": f"{year}-12-31"}
+                    pair_config = {"symbol": symbol, "timeframes": [timeframe], "start": date_range["start"], "end": date_range["end"]}
+                    enriched_data = prepare_data_for_backtest(pair_config, copy.deepcopy(config["indicators"]), force_reprocess=False)
+                    if enriched_data:
+                        strategy = initialize_components(config, timeframe, enriched_data)
+                        run_and_save_results(strategy, symbol, timeframe, date_range, config)
+                else:
+                    for month in months:
+                        month_num = list(month_name).index(month.capitalize())
+                        start_date = f"{year}-{month_num:02d}-01"
+                        end_date = pd.to_datetime(start_date).to_period('M').end_time.strftime('%Y-%m-%d')
+                        date_range = {"year": year, "months": [month], "start": start_date, "end": end_date}
+                        pair_config = {"symbol": symbol, "timeframes": [timeframe], "start": date_range["start"], "end": date_range["end"]}
+                        enriched_data = prepare_data_for_backtest(pair_config, copy.deepcopy(config["indicators"]), force_reprocess=False)
+                        if enriched_data:
+                            strategy = initialize_components(config, timeframe, enriched_data)
+                            run_and_save_results(strategy, symbol, timeframe, date_range, config)
 
 if __name__ == "__main__":
     main()

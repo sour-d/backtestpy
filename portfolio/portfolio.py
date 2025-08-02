@@ -167,7 +167,7 @@ class Portfolio:
         """Calculate comprehensive trading statistics."""
         if not self.trades:
             return {
-                "winning_trades": 0, "losing_trades": 0, "win_rate": 0.0,
+                "winning_trades": 0, "losing_trades": 0, "breakeven_trades": 0, "win_rate": 0.0,
                 "avg_win": 0.0, "avg_loss": 0.0, "avg_trade": 0.0,
                 "max_win": 0.0, "max_loss": 0.0, "profit_factor": 0.0,
                 "expectancy": 0.0, "max_consecutive_wins": 0, "max_consecutive_losses": 0,

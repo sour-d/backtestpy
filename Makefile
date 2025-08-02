@@ -30,11 +30,10 @@ download:
 	fi
 	@echo "✅ Data download complete."
 
-# Command to run the backtest. Defaults to 'all' if no index is provided.
-index ?= all
+# Command to run the backtest.
 run:
-	@echo "🚀 Running backtest for index: ${index}..."
-	@python main.py ${index}
+	@echo "🚀 Running backtest..."
+	@python main.py
 	@echo "✅ Backtest run finished."
 
 # Command to clean generated files
