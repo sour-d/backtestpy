@@ -6,6 +6,7 @@ import re
 from pathlib import Path
 import copy
 from calendar import month_name
+import json
 
 from env.trading_env import TradingEnvironment
 from portfolio.portfolio import Portfolio
@@ -41,18 +42,23 @@ def run_and_save_results(strategy, symbol, timeframe, date_range, config):
     summary = strategy.run_backtest()
 
     if date_range["months"]:
-        filename_base = f"{symbol.replace('/', '-')}_{timeframe}_{date_range['months'][0].lower()}_{date_range['year']}.csv"
+        filename_base = f"{symbol.replace('/', '-')}_{timeframe}_{date_range['months'][0].lower()}_{date_range['year']}"
     else:
-        filename_base = f"{symbol.replace('/', '-')}_{timeframe}_{date_range['year']}.csv"
+        filename_base = f"{symbol.replace('/', '-')}_{timeframe}_{date_range['year']}"
 
-    result_filepath = Path("data/result") / filename_base
+    result_filepath = Path("data/result") / f"{filename_base}.csv"
+    summary_filepath = Path("data/summary") / f"{filename_base}.json"
     result_filepath.parent.mkdir(parents=True, exist_ok=True)
+    summary_filepath.parent.mkdir(parents=True, exist_ok=True)
     
     pd.DataFrame(summary["trades"]).to_csv(result_filepath, index=False)
+    with open(summary_filepath, 'w') as f:
+        json.dump(summary, f, indent=4, default=str)
     
     print(f"\n--- Results for {symbol} ({timeframe}) ---")
     strategy.portfolio.print_summary()
     print(f"Results saved to {result_filepath}")
+    print(f"Summary saved to {summary_filepath}")
     print("--------------------------------------")
 
 
