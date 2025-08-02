@@ -49,15 +49,9 @@ class MovingAverageStrategy(BaseStrategy):
         ):
             buying_price = today['close']
             
-            # Use the closer of ma20low or a 5% stop loss to avoid unrealistically wide stops
-            percentage_stop = buying_price * 0.95  # 5% stop loss
-            ma_stop = ma20low_today
-            
-            # Use the tighter stop loss (higher value for buy orders)
-            initial_stop_loss = max(percentage_stop, ma_stop)
-
-            if initial_stop_loss >= buying_price:
-                return None, None
+            # FIXED: Always use 4% stop loss to account for gap risk
+            # Use 4% instead of 5% to leave buffer for gaps
+            initial_stop_loss = buying_price * 0.96  # 4% stop loss with gap buffer
 
             return buying_price, initial_stop_loss
         return None, None
@@ -83,15 +77,9 @@ class MovingAverageStrategy(BaseStrategy):
         ):
             selling_price = today['close']
             
-            # Use the closer of ma20high or a 5% stop loss to avoid unrealistically wide stops
-            percentage_stop = selling_price * 1.05  # 5% stop loss
-            ma_stop = ma20high_today
-            
-            # Use the tighter stop loss (lower value for sell orders)
-            initial_stop_loss = min(percentage_stop, ma_stop)
-
-            if initial_stop_loss <= selling_price:
-                return None, None
+            # FIXED: Always use 4% stop loss to account for gap risk
+            # Use 4% instead of 5% to leave buffer for gaps
+            initial_stop_loss = selling_price * 1.04  # 4% stop loss with gap buffer
 
             return selling_price, initial_stop_loss
         return None, None
@@ -109,20 +97,19 @@ class MovingAverageStrategy(BaseStrategy):
 
         # Condition 1 (MA20High Crossover & Negative Body)
         if (
-            ma20high_today > today['close']
-            and ma20high_today > today['open']
+            ma20high_today > today['low']
             and today_body < 0
         ):
-            return today['close'], "MA20High Crossover & Negative Body"
+            return ma20high_today, "MA20High Crossover & Negative Body"
 
         # Condition 2 (Consecutive MA20High Crossover & Negative Body)
         ma20high_yesterday = yesterday['ma20high']
         if (
-            ma20high_yesterday > yesterday['close']
-            and ma20high_today > today['close']
+            ma20high_yesterday > yesterday['low']
+            and ma20high_today > today['low']
             and today_body < 0
         ):
-            return today['close'], "Consecutive MA20High Crossover & Negative Body"
+            return ma20high_today, "Consecutive MA20High Crossover & Negative Body"
 
         # Condition 3 (SuperTrend Sell Signal)
         if supertrend_direction_today == "Sell":
@@ -143,20 +130,19 @@ class MovingAverageStrategy(BaseStrategy):
 
         # Condition 1 (MA20Low Crossover & Positive Body)
         if (
-            today['close'] > ma20low_today
-            and today['open'] > ma20low_today
+            today['high'] > ma20low_today
             and today_body > 0
         ):
-            return today['close'], "MA20Low Crossover & Positive Body"
+            return ma20low_today, "MA20Low Crossover & Positive Body"
 
         # Condition 2 (Consecutive MA20Low Crossover & Positive Body)
         ma20low_yesterday = yesterday['ma20low']
         if (
-            yesterday['close'] > ma20low_yesterday
-            and today['close'] > ma20low_today
+            yesterday['high'] > ma20low_yesterday
+            and today['high'] > ma20low_today
             and today_body > 0
         ):
-            return today['close'], "Consecutive MA20Low Crossover & Positive Body"
+            return ma20low_today, "Consecutive MA20Low Crossover & Positive Body"
 
         # Condition 3 (SuperTrend Buy Signal)
         if supertrend_direction_today == "Buy":
