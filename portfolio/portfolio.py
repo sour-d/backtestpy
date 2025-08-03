@@ -183,8 +183,8 @@ class Portfolio:
         breakeven_trades = [t for t in self.trades if t["net_profit_loss"] == 0]
         
         # Long and short trades analysis
-        long_trades = [t for t in self.trades if t["type"] == "long"]
-        short_trades = [t for t in self.trades if t["type"] == "short"]
+        long_trades = [t for t in self.trades if t["type"] == "buy"]
+        short_trades = [t for t in self.trades if t["type"] == "sell"]
         long_winning = [t for t in long_trades if t["net_profit_loss"] > 0]
         short_winning = [t for t in short_trades if t["net_profit_loss"] > 0]
 

@@ -15,7 +15,7 @@ backtest_settings:
     - "1d"
   periods:
     # 2025: ["june", "july"]
-    2022: []
+    2025: []
 
 # --- Indicator Pre-processing ---
 # These indicators will be calculated for the selected trading pair.

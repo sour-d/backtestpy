@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createChart, ColorType, CandlestickSeries, HistogramSeries, createSeriesMarkers } from 'lightweight-charts';
+import { Box } from '@mui/material';
 
 const ChartComponent = ({ data, trades = [], title = "Candlestick Chart" }) => {
   const chartContainerRef = useRef();
@@ -89,16 +90,27 @@ const ChartComponent = ({ data, trades = [], title = "Candlestick Chart" }) => {
       return;
     }
 
-    const formattedCandleData = data.map(d => ({
-      time: new Date(d.date).getTime() / 1000, // Convert to Unix timestamp for lightweight-charts
+    const validData = data
+      .map(d => ({
+        ...d,
+        time: new Date(d.date).getTime() / 1000,
+      }))
+      .filter(d => !isNaN(d.time));
+
+    // Sort data by time in ascending order
+    validData.sort((a, b) => a.time - b.time);
+
+
+    const formattedCandleData = validData.map(d => ({
+      time: d.time,
       open: parseFloat(d.open),
       high: parseFloat(d.high),
       low: parseFloat(d.low),
       close: parseFloat(d.close),
     }));
 
-    const formattedVolumeData = data.map(d => ({
-      time: new Date(d.date).getTime() / 1000, // Convert to Unix timestamp
+    const formattedVolumeData = validData.map(d => ({
+      time: d.time,
       value: parseFloat(d.volume),
       color: d.close > d.open ? 'rgba(38, 166, 154, 0.5)' : 'rgba(239, 83, 80, 0.5)',
     }));
@@ -175,10 +187,10 @@ const ChartComponent = ({ data, trades = [], title = "Candlestick Chart" }) => {
   }, [data, trades]);
 
   return (
-    <div style={{ backgroundColor: '#1e1e1e', padding: '20px', borderRadius: '8px' }}>
-      <h2 style={{ textAlign: 'center', color: '#e0e0e0', marginBottom: '10px' }}>{title}</h2>
+    <Box sx={{ p: 2, borderRadius: '8px', backgroundColor: 'background.paper' }}>
+      <h2 style={{ textAlign: 'center', color: 'text.primary', marginBottom: '10px' }}>{title}</h2>
       <div ref={chartContainerRef} style={{ width: '100%', height: '500px' }} />
-    </div>
+    </Box>
   );
 };
 
