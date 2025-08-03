@@ -6,6 +6,13 @@ const ChartComponent = ({ data, trades = [], title = "Candlestick Chart" }) => {
   const chartRef = useRef(null);
   const candlestickSeriesRef = useRef(null);
   const volumeSeriesRef = useRef(null);
+  const [seriesMarker, setSeriesMarker] = useState(null);
+
+  useEffect(() => {
+    if (seriesMarker) {
+      seriesMarker.setMarkers([]);
+    }
+  }, [data])
 
   useEffect(() => {
     if (!chartContainerRef.current) {
@@ -151,7 +158,8 @@ const ChartComponent = ({ data, trades = [], title = "Candlestick Chart" }) => {
         });
       }
     });
-    createSeriesMarkers(candlestickSeriesRef.current, markers);
+    const seriesMarker = createSeriesMarkers(candlestickSeriesRef.current, markers);
+    setSeriesMarker(seriesMarker);
 
     chartRef.current.timeScale().fitContent();
     // Ensure all markers are visible by setting the visible range
