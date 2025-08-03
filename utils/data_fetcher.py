@@ -100,7 +100,7 @@ def download_data_for_pair(pair_config):
     """
     Fetches and saves data for a single trading pair configuration.
     """
-    exchange = ccxt.bybit({"enableRateLimit": True, "options": {"defaultType": "spot"}})
+    exchange = ccxt.bybit({"enableRateLimit": True, "options": {"defaultType": "swap"}})
     symbol = pair_config["symbol"]
     timeframe = pair_config["timeframe"]
     since_ms = parse_date(f"{pair_config["start"]} 00:00:00")

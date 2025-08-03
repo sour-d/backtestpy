@@ -43,20 +43,10 @@ def calculate_supertrend(df, period=10, multiplier=3):
         if i == 0:
             final_upper_band.iloc[i] = basic_upper_band.iloc[i]
             final_lower_band.iloc[i] = basic_lower_band.iloc[i]
-            # Initial direction based on close price relative to bands
-            if df['close'].iloc[i] > final_upper_band.iloc[i]:
-                direction.iloc[i] = 1 # Buy
-                supertrend.iloc[i] = final_lower_band.iloc[i]
-            elif df['close'].iloc[i] < final_lower_band.iloc[i]:
-                direction.iloc[i] = -1 # Sell
-                supertrend.iloc[i] = final_upper_band.iloc[i]
-            else:
-                # If within bands, default to Buy (or Sell) to avoid Neutral
-                # For the very first point, if it's within bands, we can't determine trend from previous
-                # A common approach is to default to an uptrend or simply mark as NA until a clear signal
-                # Given the strategy, we need a clear Buy/Sell. Let's default to Buy if no clear signal.
-                direction.iloc[i] = 1 # Default to Buy
-                supertrend.iloc[i] = final_lower_band.iloc[i]
+            # For the very first candle, we cannot determine direction from previous data.
+            # Initialize as NA, and the trend will be determined from the second candle onwards.
+            direction.iloc[i] = pd.NA
+            supertrend.iloc[i] = pd.NA
         else:
             # Dynamic adjustment of bands
             if df['close'].iloc[i-1] <= final_lower_band.iloc[i-1]:
