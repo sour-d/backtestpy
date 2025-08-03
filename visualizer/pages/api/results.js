@@ -43,6 +43,21 @@ export default async function handler(req, res) {
         console.error('Error fetching result data:', error);
         res.status(404).json({ message: 'Result data not found' });
       }
+    } else if (req.query.allSummaries === 'true') {
+      try {
+        const files = await fs.readdir(summaryDir);
+        const summaries = await Promise.all(
+          files.filter(file => file.endsWith('.json')).map(async file => {
+            const summaryPath = path.join(summaryDir, file);
+            const summaryContent = await fs.readFile(summaryPath, 'utf8');
+            return JSON.parse(summaryContent);
+          })
+        );
+        res.status(200).json(summaries);
+      } catch (error) {
+        console.error('Error fetching all summaries:', error);
+        res.status(500).json({ message: 'Unable to fetch all summaries' });
+      }
     } else {
       // Handle request for list of all results
       try {

@@ -74,7 +74,7 @@ const Home = () => {
 
   return (
     <Container maxWidth={false} sx={{ padding: '20px' }}>
-      <Header results={results} selectedResult={selectedResult} onSelectResult={loadResult} />
+      <Header results={results} selectedResult={selectedResult} onSelectResult={loadResult} showComparisonLink={true} />
 
       {summary && <SummarySection summary={summary} />}
 

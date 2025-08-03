@@ -12,7 +12,7 @@ backtest_settings:
     - "ADA/USDT"
     - "DOT/USDT"
   timeframes:
-    - "1d"
+    - "4h"
   periods:
     # 2025: ["june", "july"]
     2025: []

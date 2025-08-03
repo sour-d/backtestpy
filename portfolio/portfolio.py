@@ -168,7 +168,7 @@ class Portfolio:
         if not self.trades:
             return {
                 "winning_trades": 0, "losing_trades": 0, "breakeven_trades": 0, "win_rate": 0.0,
-                "avg_win": 0.0, "avg_loss": 0.0, "avg_trade": 0.0,
+                "avg_profit_per_win": 0.0, "avg_loss_per_loss": 0.0, "avg_trade": 0.0,
                 "max_win": 0.0, "max_loss": 0.0, "profit_factor": 0.0,
                 "expectancy": 0.0, "max_consecutive_wins": 0, "max_consecutive_losses": 0,
                 "current_streak": 0, "current_streak_type": "None", "max_drawdown": 0.0,
@@ -253,67 +253,8 @@ class Portfolio:
             # Profit/Loss Analysis
             "total_wins": total_wins,
             "total_losses": total_losses,
-            "avg_win": avg_win,
-            "avg_loss": avg_loss,
-            "avg_trade": avg_trade,
-            "max_win": max_win,
-            "max_loss": max_loss,
-            "best_trade": max_win,
-            "worst_trade": max_loss,
-            
-            # Performance Metrics
-            "profit_factor": profit_factor,
-            "expectancy": expectancy,
-            "sharpe_ratio": sharpe_ratio,
-            
-            # Consecutive Trade Analysis
-            **consecutive_stats,
-            
-            # Drawdown Analysis
-            **drawdown_stats,
-            
-            # Long vs Short Analysis
-            "total_long_trades": len(long_trades),
-            "total_short_trades": len(short_trades),
-            "long_win_rate": (len(long_winning) / len(long_trades)) * 100 if long_trades else 0,
-            "short_win_rate": (len(short_winning) / len(short_trades)) * 100 if short_trades else 0,
-            
-            # Duration Analysis
-            "avg_trade_duration": avg_duration,
-        }
-        for trade in self.trades:
-            if 'entry_date' in trade and 'exit_date' in trade:
-                try:
-                    entry_date = pd.to_datetime(trade['entry_date'])
-                    exit_date = pd.to_datetime(trade['exit_date'])
-                    duration = (exit_date - entry_date).total_seconds() / 3600  # hours
-                    durations.append(duration)
-                except:
-                    pass
-        
-        avg_duration = sum(durations) / len(durations) if durations else 0
-
-        # Sharpe ratio (simplified - using trade returns)
-        if len(self.trades) > 1:
-            trade_returns = [t["net_profit_loss_pct"] for t in self.trades]
-            avg_return = sum(trade_returns) / len(trade_returns)
-            return_std = (sum((r - avg_return) ** 2 for r in trade_returns) / len(trade_returns)) ** 0.5
-            sharpe_ratio = avg_return / return_std if return_std > 0 else 0
-        else:
-            sharpe_ratio = 0
-
-        return {
-            # Win/Loss Statistics
-            "winning_trades": winning_count,
-            "losing_trades": losing_count,
-            "breakeven_trades": len(breakeven_trades),
-            "win_rate": win_rate,
-            
-            # Profit/Loss Analysis
-            "total_wins": total_wins,
-            "total_losses": total_losses,
-            "avg_win": avg_win,
-            "avg_loss": avg_loss,
+            "avg_profit_per_win": avg_win,
+            "avg_loss_per_loss": avg_loss,
             "avg_trade": avg_trade,
             "max_win": max_win,
             "max_loss": max_loss,
@@ -466,8 +407,8 @@ class Portfolio:
         # Profit/Loss Metrics
         print(f"\n💰 PROFIT/LOSS METRICS:")
         print(f"   Average Trade:       ${summary_data['avg_trade']:,.2f}")
-        print(f"   Average Win:         ${summary_data['avg_win']:,.2f}")
-        print(f"   Average Loss:        ${summary_data['avg_loss']:,.2f}")
+        print(f"   Average Win:         ${summary_data['avg_profit_per_win']:,.2f}")
+        print(f"   Average Loss:        ${summary_data['avg_loss_per_loss']:,.2f}")
         print(f"   Best Trade:          ${summary_data['best_trade']:,.2f}")
         print(f"   Worst Trade:         ${summary_data['worst_trade']:,.2f}")
         

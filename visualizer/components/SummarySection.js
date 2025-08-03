@@ -51,8 +51,8 @@ const SummarySection = ({ summary }) => {
 
   const profitLossMetrics = {
     avg_trade: summary.avg_trade,
-    avg_win: summary.avg_win,
-    avg_loss: summary.avg_loss,
+    avg_profit_per_win: summary.avg_profit_per_win,
+    avg_loss_per_loss: summary.avg_loss_per_loss,
     max_win: summary.max_win,
     max_loss: summary.max_loss,
     best_trade: summary.best_trade,
