@@ -63,6 +63,14 @@ class BaseStrategy(ABC):
         )
 
     def _liquidate(self, price, reason="signal_exit"):
+        yesterday = self.data_storage.previous_candle_of(1)
+        if reason == "end_of_data":
+            return self.portfolio.close_position(
+                price=yesterday["close"],
+                exit_date=yesterday["datetime"],
+                exit_step=self.data_storage.current_step - 1,
+                action="end_of_data",
+            )
         self.portfolio.close_position(
             price=price,
             exit_date=self.data_storage.current_date,
