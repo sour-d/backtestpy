@@ -41,7 +41,6 @@ portfolio:
 # This strategy will be applied to the selected trading pair(s).
 strategy:
   class_name: "MovingAverageStrategy"
-  timeframe: "1d" # Specify which timeframe to use for trading
   parameters:
     ma_period: 20
     supertrend_period: 10

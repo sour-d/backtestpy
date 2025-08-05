@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
-
+from data_storage.data_storage_base import DataStorageBase
 
 class BaseStrategy(ABC):
-    def __init__(self, env, portfolio, **params):
-        self.env = env
+    def __init__(self, data_storage: DataStorageBase, portfolio, **params):
+        self.data_storage = data_storage
         self.portfolio = portfolio
         self.params = params
         self.risk_pct = self.params.get("risk_pct", 0.01)
@@ -16,7 +16,6 @@ class BaseStrategy(ABC):
         """
         Define the conditions for entering a long position.
         Should return a tuple of (price, stop_loss) or (None, None).
-        For backward compatibility, can also return just price or None.
         """
         pass
 
@@ -25,7 +24,6 @@ class BaseStrategy(ABC):
         """
         Define the conditions for entering a short position.
         Should return a tuple of (price, stop_loss) or (None, None).
-        For backward compatibility, can also return just price or None.
         """
         pass
 
@@ -60,25 +58,26 @@ class BaseStrategy(ABC):
             price=price,
             stop_loss=stop_loss,
             risk_per_share=risk_per_share,
-            entry_date=self.env.get_current_date(),
-            entry_step=self.env.current_step,
+            entry_date=self.data_storage.current_date,
+            entry_step=self.data_storage.current_step,
         )
 
     def _liquidate(self, price, reason="signal_exit"):
         self.portfolio.close_position(
             price=price,
-            exit_date=self.env.get_current_date(),
-            exit_step=self.env.current_step,
+            exit_date=self.data_storage.current_date,
+            exit_step=self.data_storage.current_step,
             action=reason,
         )
 
-    def _update_trailing_stop(self, trade, current_candle):
+    def _update_trailing_stop(self, trade):
         """Update trailing stop loss based on current price movement."""
         if not self.trailing_stop_enabled:
             return
-            
-        current_high = current_candle["high"]
-        current_low = current_candle["low"]
+
+        today = self.data_storage.current_candle()
+        current_high = today["high"]
+        current_low = today["low"]
         current_stop = trade["stop_loss"]
         new_stop = None
         
@@ -104,21 +103,22 @@ class BaseStrategy(ABC):
                 print(f"📈 Trailing stop updated: {current_stop:.4f} -> {new_stop:.4f} ({trade['type']} position)")
             self.portfolio.update_stop_loss(new_stop)
 
-    def _check_stop_loss(self, trade, current_candle):
+    def _check_stop_loss(self, trade):
+        today = self.data_storage.current_candle()
         stop_loss_hit = False
         
         if trade["type"] == "buy":
-            if current_candle["low"] <= trade["stop_loss"]:
+            if today["low"] <= trade["stop_loss"]:
                 self._liquidate(trade["stop_loss"], "stop_loss")
                 stop_loss_hit = True
         elif trade["type"] == "sell":
-            if current_candle["high"] >= trade["stop_loss"]:
+            if today["high"] >= trade["stop_loss"]:
                 self._liquidate(trade["stop_loss"], "stop_loss")
                 stop_loss_hit = True
         
         # Update trailing stop after checking for stop loss
         if not stop_loss_hit:
-            self._update_trailing_stop(trade, current_candle)
+            self._update_trailing_stop(trade)
         
         return stop_loss_hit
 
@@ -160,19 +160,19 @@ class BaseStrategy(ABC):
                     self._take_position("sell", sell_price)
 
     def run_backtest(self):
-        while self.env.has_data:
+        while self.data_storage.has_more_data:
             trade = self.portfolio.current_trade
+            today = self.data_storage.current_candle()
             if trade:
-                current_candle = self.env.now[self.env.primary_timeframe]
-                
-                if not self._check_stop_loss(trade, current_candle):
+                if not self._check_stop_loss(trade):
                     self._check_exit_signals(trade)
             else:
                 self._check_entry_signals()
 
-            self.env.move()
+            self.data_storage.next()
 
         if self.portfolio.current_trade:
-            self._liquidate(self.env.now[self.env.primary_timeframe]["close"], reason="end_of_data")
+            print("📈 Backtest ended with an open position. Liquidating...")
+            self._liquidate(today["close"], reason="end_of_data")
 
         return self.portfolio.summary()

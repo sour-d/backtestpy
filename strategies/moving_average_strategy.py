@@ -2,34 +2,20 @@ from .base_strategy import BaseStrategy
 import pandas as pd
 
 class MovingAverageStrategy(BaseStrategy):
-    def __init__(self, env, portfolio, **params):
-        super().__init__(env, portfolio, **params)
+    def __init__(self, data_storage, portfolio, **params):
+        super().__init__(data_storage, portfolio, **params)
         self.ma_period = self.params.get('ma_period', 20)
         self.supertrend_period = self.params.get('supertrend_period', 10)
         self.supertrend_multiplier = self.params.get('supertrend_multiplier', 3)
-        self.primary_tf = self.env.primary_timeframe
-
-    def _get_current_and_previous_day_data(self):
-        """Helper to get today's and yesterday's data."""
-        # Get current data from multi-timeframe environment
-        current_data = self.env.now[self.primary_tf]
-        if current_data is None:
-            return None, None
-            
-        # Get previous data using historical data method
-        historical_data = self.env.get_historical_data(2, self.primary_tf)
-        if historical_data is None or len(historical_data) < 2:
-            return None, None
-            
-        yesterday = historical_data.iloc[-1]  # Previous row
-        return current_data, yesterday
 
     def _calculate_body(self, day_data):
         """Helper to calculate candle body."""
         return day_data['close'] - day_data['open']
 
     def buy_signal(self):
-        today, yesterday = self._get_current_and_previous_day_data()
+        today = self.data_storage.current_candle()
+        yesterday = self.data_storage.previous_candle_of(1)
+
         if today is None or yesterday is None:
             return None, None
 
@@ -57,7 +43,9 @@ class MovingAverageStrategy(BaseStrategy):
         return None, None
 
     def sell_signal(self):
-        today, yesterday = self._get_current_and_previous_day_data()
+        today = self.data_storage.current_candle()
+        yesterday = self.data_storage.previous_candle_of(1)
+
         if today is None or yesterday is None:
             return None, None
 
@@ -85,7 +73,9 @@ class MovingAverageStrategy(BaseStrategy):
         return None, None
 
     def close_long_signal(self):
-        today, yesterday = self._get_current_and_previous_day_data()
+        today = self.data_storage.current_candle()
+        yesterday = self.data_storage.previous_candle_of(1)
+
         if today is None or yesterday is None:
             return None, None
 
@@ -118,7 +108,9 @@ class MovingAverageStrategy(BaseStrategy):
         return None, None
 
     def close_short_signal(self):
-        today, yesterday = self._get_current_and_previous_day_data()
+        today = self.data_storage.current_candle()
+        yesterday = self.data_storage.previous_candle_of(1)
+
         if today is None or yesterday is None:
             return None, None
 
