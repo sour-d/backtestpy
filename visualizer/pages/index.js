@@ -59,6 +59,7 @@ const Home = () => {
             low: parseFloat(d.low),
             close: parseFloat(d.close),
             volume: parseFloat(d.volume),
+            timestamp: parseInt(d.timestamp)
           })).filter(d => !isNaN(d.open) && !isNaN(d.high) && !isNaN(d.low) && !isNaN(d.close) && !isNaN(d.volume) && typeof (d.timestamp ? new Date(parseInt(d.timestamp)).toISOString().split('T')[0] : (d.Date || d.date)) === 'string');
           setChartData(formattedChartData);
         }

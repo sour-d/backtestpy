@@ -93,7 +93,7 @@ const ChartComponent = ({ data, trades = [], title = "Candlestick Chart" }) => {
     const validData = data
       .map(d => ({
         ...d,
-        time: new Date(d.date).getTime() / 1000,
+        time: d.timestamp
       }))
       .filter(d => !isNaN(d.time));
 
@@ -142,33 +142,29 @@ const ChartComponent = ({ data, trades = [], title = "Candlestick Chart" }) => {
     trades.forEach(trade => {
       // Entry marker
       const entryDate = new Date(trade.entry_date);
-      const entryTime = entryDate.getTime() / 1000;
-      const snappedEntryTime = findClosestCandleTime(entryTime);
+      const entryTime = entryDate.getTime();
+      // const snappedEntryTime = findClosestCandleTime(entryTime);
 
-      if (snappedEntryTime) {
-        markers.push({
-          time: snappedEntryTime,
-          position: trade.type.toUpperCase() === 'BUY' ? 'belowBar' : 'aboveBar',
-          color: trade.type.toUpperCase() === 'BUY' ? '#00FF00' : '#FF0000',
-          shape: trade.type.toUpperCase() === 'BUY' ? 'arrowUp' : 'arrowDown',
-          text: trade.type.toUpperCase() === 'BUY' ? 'L' : 'S',
-        });
-      }
+      markers.push({
+        time: entryTime,
+        position: trade.type.toUpperCase() === 'BUY' ? 'belowBar' : 'aboveBar',
+        color: trade.type.toUpperCase() === 'BUY' ? '#00FF00' : '#FF0000',
+        shape: trade.type.toUpperCase() === 'BUY' ? 'arrowUp' : 'arrowDown',
+        text: trade.type.toUpperCase() === 'BUY' ? 'L' : 'S',
+      });
 
       // Exit marker
       const exitDate = new Date(trade.exit_date);
-      const exitTime = exitDate.getTime() / 1000;
-      const snappedExitTime = findClosestCandleTime(exitTime);
+      const exitTime = exitDate.getTime();
+      // const snappedExitTime = findClosestCandleTime(exitTime);
 
-      if (snappedExitTime) {
-        markers.push({
-          time: snappedExitTime,
-          position: trade.type.toUpperCase() === 'BUY' ? 'aboveBar' : 'belowBar',
-          color: trade.type.toUpperCase() === 'BUY' ? '#FF0000' : '#00FF00',
-          shape: trade.type === 'BUY' ? 'arrowDown' : 'arrowUp',
-          text: 'E',
-        });
-      }
+      markers.push({
+        time: exitTime,
+        position: trade.type.toUpperCase() === 'BUY' ? 'aboveBar' : 'belowBar',
+        color: trade.type.toUpperCase() === 'BUY' ? '#FF0000' : '#00FF00',
+        shape: trade.type === 'BUY' ? 'arrowDown' : 'arrowUp',
+        text: 'E',
+      });
     });
     const seriesMarker = createSeriesMarkers(candlestickSeriesRef.current, markers);
     setSeriesMarker(seriesMarker);
