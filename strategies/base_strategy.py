@@ -62,7 +62,7 @@ class BaseStrategy(ABC):
             entry_step=self.data_storage.current_step,
         )
 
-    def _liquidate(self, price, reason="signal_exit"):
+    def _liquidate(self, price=0, reason="signal_exit"):
         yesterday = self.data_storage.previous_candle_of(1)
         if reason == "end_of_data":
             return self.portfolio.close_position(
@@ -167,20 +167,32 @@ class BaseStrategy(ABC):
                 if sell_price:
                     self._take_position("sell", sell_price)
 
+    def _on_tick(self):
+        trade = self.portfolio.current_trade
+        if trade:
+            if not self._check_stop_loss(trade):
+                self._check_exit_signals(trade)
+        else:
+            self._check_entry_signals()
+
+        self.data_storage.next()
+
+
     def run_backtest(self):
         while self.data_storage.has_more_data:
-            trade = self.portfolio.current_trade
-            today = self.data_storage.current_candle()
-            if trade:
-                if not self._check_stop_loss(trade):
-                    self._check_exit_signals(trade)
-            else:
-                self._check_entry_signals()
-
-            self.data_storage.next()
-
+            self._on_tick()
+            
         if self.portfolio.current_trade:
-            print("📈 Backtest ended with an open position. Liquidating...")
-            self._liquidate(today["close"], reason="end_of_data")
+            self._liquidate(reason="end_of_data")
 
         return self.portfolio.summary()
+    
+    def run_live(self):
+        raise NotImplementedError("run_live is not implemented for BaseStrategy. Please implement in subclasses.")
+    
+    def run_simulation(self):
+        if self.data_storage.__class__.__name__ is "HistoricalDataStorage":
+            return self.run_backtest()
+        else:
+            return self.run_live()
+            
