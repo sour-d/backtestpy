@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
 from data_storage.data_storage_base import DataStorageBase
+from data_storage.historical_data_storage import HistoricalDataStorage
+from data_storage.live_data_storage import LiveDataStorage
 
 class BaseStrategy(ABC):
     def __init__(self, data_storage: DataStorageBase, portfolio, **params):
@@ -63,20 +65,36 @@ class BaseStrategy(ABC):
         )
 
     def _liquidate(self, price=0, reason="signal_exit"):
-        yesterday = self.data_storage.previous_candle_of(1)
+        # Use current_candle for liquidation price if not provided
+        if price == 0 and self.data_storage.current_candle() is not None:
+            price = self.data_storage.current_candle()["close"]
+
+        # For end_of_data, use the last available candle's close price and datetime
         if reason == "end_of_data":
-            return self.portfolio.close_position(
-                price=yesterday["close"],
-                exit_date=yesterday["datetime"],
-                exit_step=self.data_storage.current_step - 1,
+            last_candle = self.data_storage.previous_candle_of(0) # Get the very last candle processed
+            if last_candle is not None:
+                price = last_candle["close"]
+                exit_date = last_candle["datetime"]
+                exit_step = self.data_storage.current_step - 1 # Last completed step
+            else:
+                # Fallback if no candles were processed (e.g., empty data)
+                price = 0
+                exit_date = datetime.now()
+                exit_step = self.data_storage.current_step
+            
+            self.portfolio.close_position(
+                price=price,
+                exit_date=exit_date,
+                exit_step=exit_step,
                 action="end_of_data",
             )
-        self.portfolio.close_position(
-            price=price,
-            exit_date=self.data_storage.current_date,
-            exit_step=self.data_storage.current_step,
-            action=reason,
-        )
+        else:
+            self.portfolio.close_position(
+                price=price,
+                exit_date=self.data_storage.current_date,
+                exit_step=self.data_storage.current_step,
+                action=reason,
+            )
 
     def _update_trailing_stop(self, trade):
         """Update trailing stop loss based on current price movement."""
@@ -175,11 +193,17 @@ class BaseStrategy(ABC):
         else:
             self._check_entry_signals()
 
-        self.data_storage.next()
 
-
-    def run_backtest(self):
+    async def run_backtest(self):
         while self.data_storage.has_more_data:
+            # Get the next processed data (current candle and historical data)
+            current_candle, historical_data = await self.data_storage.get_next_processed_data()
+            
+            # If there's no more data, break the loop
+            if current_candle is None:
+                break
+
+            # Process the tick with the newly received data
             self._on_tick()
             
         if self.portfolio.current_trade:
@@ -187,12 +211,32 @@ class BaseStrategy(ABC):
 
         return self.portfolio.summary()
     
-    def run_live(self):
-        raise NotImplementedError("run_live is not implemented for BaseStrategy. Please implement in subclasses.")
-    
-    def run_simulation(self):
-        if self.data_storage.__class__.__name__ is "HistoricalDataStorage":
-            return self.run_backtest()
+    async def run_live(self):
+        # Subscribe to new_candle events from LiveDataStorage
+        if isinstance(self.data_storage, LiveDataStorage):
+            self.data_storage.on("new_candle", self._on_live_candle_received)
+            await self.data_storage.start_live_data() # Start the data stream
         else:
-            return self.run_live()
-            
+            raise TypeError("run_live can only be called with LiveDataStorage.")
+
+    async def _on_live_candle_received(self, current_candle, historical_data):
+        # This method is called when LiveDataStorage emits a new_candle event
+        # The data_storage's internal state (current_candle, historical_data) is already updated
+        self._on_tick()
+
+    async def run_simulation(self):
+        if isinstance(self.data_storage, HistoricalDataStorage):
+            return await self.run_backtest() # HistoricalDataStorage is synchronous
+        elif isinstance(self.data_storage, LiveDataStorage):
+            # For simulation with LiveDataStorage, we still want to iterate through it
+            # but without the infinite loop of run_live. This needs careful handling.
+            # We'll iterate by calling get_next_processed_data until no more data.
+            while True:
+                current_candle, historical_data = await self.data_storage.get_next_processed_data()
+                if current_candle is not None:
+                    self._on_tick()
+                else:
+                    break # No more data from dummy source
+            return self.portfolio.summary()
+        else:
+            raise NotImplementedError("Unsupported DataStorage type for run_simulation.")

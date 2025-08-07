@@ -65,9 +65,11 @@ def prepare_data_for_backtest(pair_config, indicator_configs, force_reprocess=Fa
             if raw_data.empty:
                 print(f"❌ Raw data for {current_tf_pair_config['symbol']} ({tf}) is empty. Skipping.")
                 continue # Skip this timeframe if data is empty
-            indicator_processor = IndicatorProcessor(raw_data)
-            enriched_data = indicator_processor.process(indicator_configs)
-            indicator_processor.save_to_csv(enriched_filepath)
+            
+            # Use the refactored IndicatorProcessor
+            indicator_processor = IndicatorProcessor(indicator_configs)
+            enriched_data = indicator_processor.process(raw_data)
+            indicator_processor.save_to_csv(enriched_data, enriched_filepath) # Pass data to save_to_csv
         
         final_data = load_data(enriched_filepath)
         all_timeframe_data[tf] = final_data

@@ -7,6 +7,7 @@ from pathlib import Path
 import copy
 from calendar import month_name
 import json
+import asyncio # New import
 
 # Removed: from env.trading_env import TradingEnvironment
 from data_storage.historical_data_storage import HistoricalDataStorage # New import
@@ -30,7 +31,7 @@ def initialize_components(config, enriched_data, timeframe):
     data_for_strategy = enriched_data[timeframe]
 
     # Use HistoricalDataStorage instead of TradingEnvironment
-    data_storage = HistoricalDataStorage(data_for_strategy)
+    data_storage = HistoricalDataStorage(data_for_strategy, window_size=500)
 
     portfolio = Portfolio(
         capital=config["portfolio"]["initial_capital"],
@@ -39,7 +40,7 @@ def initialize_components(config, enriched_data, timeframe):
     )
 
     strategy_class_name = strategy_config["class_name"]
-    strategy_params = strategy_config["parameters"]
+    strategy_params = config["strategy"]["parameters"]
     strategy_module_name = to_snake_case(strategy_class_name)
 
     strategy_module = importlib.import_module(f"strategies.{strategy_module_name}")
@@ -49,9 +50,9 @@ def initialize_components(config, enriched_data, timeframe):
     return StrategyClass(data_storage, portfolio, **strategy_params)
 
 
-def run_and_save_results(strategy, symbol, timeframe, date_range, config):
+async def run_and_save_results(strategy, symbol, timeframe, date_range, config):
     print(f"\n--- Running Backtest: {strategy.__class__.__name__} on {symbol} ({timeframe}) ---")
-    summary = strategy.run_backtest()
+    summary = await strategy.run_backtest() # Await the async run_backtest
 
     if date_range["months"]:
         filename_base = f"{symbol.replace('/', '-')}_{timeframe}_{date_range['months'][0].lower()}_{date_range['year']}"
@@ -74,7 +75,7 @@ def run_and_save_results(strategy, symbol, timeframe, date_range, config):
     print("--------------------------------------")
 
 
-def main():
+async def main(): # main is now async
     with open("config.yaml", "r") as f:
         config = yaml.safe_load(f)
 
@@ -95,7 +96,7 @@ def main():
                     enriched_data = prepare_data_for_backtest(pair_config, copy.deepcopy(config["indicators"]), force_reprocess=False)
                     if enriched_data:
                         strategy = initialize_components(config, enriched_data, timeframe) # Pass enriched_data dict
-                        run_and_save_results(strategy, symbol, timeframe, date_range, config) # Use backtest_settings timeframe for naming
+                        await run_and_save_results(strategy, symbol, timeframe, date_range, config) # Await the async function
                 else:
                     for month in months:
                         month_num = list(month_name).index(month.capitalize())
@@ -108,7 +109,7 @@ def main():
                         enriched_data = prepare_data_for_backtest(pair_config, copy.deepcopy(config["indicators"]), force_reprocess=False)
                         if enriched_data:
                             strategy = initialize_components(config, enriched_data, timeframe) # Pass enriched_data dict
-                            run_and_save_results(strategy, symbol, timeframe, date_range, config)
+                            await run_and_save_results(strategy, symbol, timeframe, date_range, config) # Await the async function
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main()) # Run the async main function

@@ -10,7 +10,7 @@ class DataStorageBase(ABC):
         self.data_df = data_df
 
     @abstractmethod
-    def next(self):
+    async def get_next_processed_data(self):
         """
         Advances to the next data point and returns the current candle
         and the historical data needed by the strategy.
@@ -55,5 +55,19 @@ class DataStorageBase(ABC):
     def current_step(self) -> int:
         """
         Returns the current step/index in the data stream.
+        """
+        pass
+
+    async def connect(self):
+        """
+        Establishes connection to the data source (e.g., WebSocket).
+        Implemented by subclasses if needed.
+        """
+        pass
+
+    async def close(self):
+        """
+        Closes connection to the data source.
+        Implemented by subclasses if needed.
         """
         pass
