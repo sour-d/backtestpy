@@ -45,8 +45,5 @@ visualize:
 clean:
 	@echo "🧹 Cleaning generated data..."
 	@# Use -f to ignore errors if the directories or files don't exist
-	@rm -f data/processed/*
-	@rm -f data/result/*
-	@rm -f data/summary/*
-	@rm -f data/raw/*
+	@rm -fr data/*
 	@echo "✅ Done."

@@ -7,12 +7,13 @@ from pathlib import Path
 import copy
 from calendar import month_name
 import json
-import asyncio # New import
+import asyncio
 
-# Removed: from env.trading_env import TradingEnvironment
-from data_storage.historical_data_storage import HistoricalDataStorage # New import
+from data_storage.historical_data_storage import HistoricalDataStorage
+from data_store_manager.data_store_manager_base import BACKTEST_DATA_TYPE, RESULT_DATA_TYPE, SUMMARY_DATA_TYPE
 from portfolio.portfolio import Portfolio
-from utils.data_manager import prepare_data_for_backtest
+from utils.backtestHelpers import prepare_data_for_backtest
+from data_store_manager.file_store_manager import FileStoreManager # New import
 
 
 def to_snake_case(name):
@@ -22,15 +23,10 @@ def to_snake_case(name):
 
 def initialize_components(config, enriched_data, timeframe):
     strategy_config = config["strategy"]
-    # Get the timeframe specifically for the strategy from config
     
-    # Extract the DataFrame for the strategy's primary timeframe
-    if timeframe not in enriched_data:
-        raise ValueError(f"Data for strategy timeframe {timeframe} not found in enriched_data.")
-    
-    data_for_strategy = enriched_data[timeframe]
+    # enriched_data is now a DataFrame directly, not a dictionary
+    data_for_strategy = enriched_data
 
-    # Use HistoricalDataStorage instead of TradingEnvironment
     data_storage = HistoricalDataStorage(data_for_strategy, window_size=500)
 
     portfolio = Portfolio(
@@ -46,70 +42,57 @@ def initialize_components(config, enriched_data, timeframe):
     strategy_module = importlib.import_module(f"strategies.{strategy_module_name}")
     StrategyClass = getattr(strategy_module, strategy_class_name)
     
-    # Pass data_storage to the strategy
     return StrategyClass(data_storage, portfolio, **strategy_params)
 
 
-async def run_and_save_results(strategy, symbol, timeframe, date_range, config):
-    print(f"\n--- Running Backtest: {strategy.__class__.__name__} on {symbol} ({timeframe}) ---")
-    summary = await strategy.run_backtest() # Await the async run_backtest
+async def run_and_save_results(strategy, pair_config):
+    print(f"\n--- Running Backtest: {strategy.__class__.__name__} on {pair_config['symbol']} ({pair_config['timeframe']}) ---")
+    data_store_manager = FileStoreManager(pair_config, BACKTEST_DATA_TYPE)
+    symbol = pair_config['symbol']
+    timeframe = pair_config['timeframe']
+    summary = await strategy.run_backtest()
 
-    if date_range["months"]:
-        filename_base = f"{symbol.replace('/', '-')}_{timeframe}_{date_range['months'][0].lower()}_{date_range['year']}"
-    else:
-        filename_base = f"{symbol.replace('/', '-')}_{timeframe}_{date_range['year']}"
-
-    result_filepath = Path("data/result") / f"{filename_base}.csv"
-    summary_filepath = Path("data/summary") / f"{filename_base}.json"
-    result_filepath.parent.mkdir(parents=True, exist_ok=True)
-    summary_filepath.parent.mkdir(parents=True, exist_ok=True)
-    
-    pd.DataFrame(summary["trades"]).to_csv(result_filepath, index=False)
-    with open(summary_filepath, 'w') as f:
-        json.dump(summary, f, indent=4, default=str)
+    data_store_manager.save_dataframe(pd.DataFrame(summary["trades"]), RESULT_DATA_TYPE)
+    data_store_manager.save_json(summary, SUMMARY_DATA_TYPE)
     
     print(f"\n--- Results for {symbol} ({timeframe}) ---")
     strategy.portfolio.print_summary()
-    print(f"Results saved to {result_filepath}")
-    print(f"Summary saved to {summary_filepath}")
     print("--------------------------------------")
 
 
-async def main(): # main is now async
+async def main():
     with open("config.yaml", "r") as f:
         config = yaml.safe_load(f)
 
     backtest_settings = config["backtest_settings"]
     symbols = backtest_settings["symbols"]
-    timeframes = backtest_settings["timeframes"] # Keep iterating over backtest_settings timeframes
+    timeframes = backtest_settings["timeframes"]
     periods = backtest_settings["periods"]
 
+    # Initialize the FileStoreManager once for the main loop
+    # data_store_manager = FileStoreManager() # No symbol_info needed at init
 
     for symbol in symbols:
-        for timeframe in timeframes: # Loop over backtest_settings timeframes
+        for timeframe in timeframes:
             for year, months in periods.items():
                 if not months:
                     date_range = {"year": year, "months": [], "start": f"{year}-01-01", "end": f"{year}-12-31"}
-                    # Ensure both backtest_settings timeframe and strategy timeframe are processed
-                    pair_config = {"symbol": symbol, "timeframes": [timeframe], "start": date_range["start"], "end": date_range["end"]}
-                    print(f"DEBUG: Calling prepare_data_for_backtest with timeframes: {pair_config["timeframes"]}")
-                    enriched_data = prepare_data_for_backtest(pair_config, copy.deepcopy(config["indicators"]), force_reprocess=False)
-                    if enriched_data:
-                        strategy = initialize_components(config, enriched_data, timeframe) # Pass enriched_data dict
-                        await run_and_save_results(strategy, symbol, timeframe, date_range, config) # Await the async function
+                    pair_config = {"symbol": symbol, "timeframe": timeframe, "start": date_range["start"], "end": date_range["end"]}
+                    enriched_data = prepare_data_for_backtest(pair_config, copy.deepcopy(config["indicators"]))
+                    if enriched_data is not None and not enriched_data.empty:
+                        strategy = initialize_components(config, enriched_data, timeframe)
+                        await run_and_save_results(strategy, pair_config)
                 else:
                     for month in months:
                         month_num = list(month_name).index(month.capitalize())
                         start_date = f"{year}-{month_num:02d}-01"
                         end_date = pd.to_datetime(start_date).to_period('M').end_time.strftime('%Y-%m-%d')
                         date_range = {"year": year, "months": [month], "start": start_date, "end": end_date}
-                        # Ensure both backtest_settings timeframe and strategy timeframe are processed
-                        pair_config = {"symbol": symbol, "timeframes": [timeframe], "start": date_range["start"], "end": date_range["end"]}
-                        print(f"DEBUG: Calling prepare_data_for_backtest with timeframes: {pair_config["timeframes"]}")
-                        enriched_data = prepare_data_for_backtest(pair_config, copy.deepcopy(config["indicators"]), force_reprocess=False)
-                        if enriched_data:
-                            strategy = initialize_components(config, enriched_data, timeframe) # Pass enriched_data dict
-                            await run_and_save_results(strategy, symbol, timeframe, date_range, config) # Await the async function
+                        pair_config = {"symbol": symbol, "timeframe": timeframe, "start": date_range["start"], "end": date_range["end"]}
+                        enriched_data = prepare_data_for_backtest(pair_config, copy.deepcopy(config["indicators"]))
+                        if enriched_data is not None and not enriched_data.empty:
+                            strategy = initialize_components(config, enriched_data, timeframe)
+                            await run_and_save_results(strategy, pair_config)
 
 if __name__ == "__main__":
-    asyncio.run(main()) # Run the async main function
+    asyncio.run(main())

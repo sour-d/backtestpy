@@ -4,6 +4,8 @@ import pandas as pd
 import time
 from datetime import datetime
 from pathlib import Path
+from data_store_manager.data_store_manager_base import BACKTEST_DATA_TYPE, RAW_DATA_TYPE
+from data_store_manager.file_store_manager import FileStoreManager
 from utils.file_utils import get_pair_filename
 
 SAVE_PATH = "./data/raw"
@@ -87,13 +89,13 @@ def _fetch_ohlcv(exchange, symbol, timeframe, since_ms, until_ms, pair_config):
 
 
 def _save_to_csv(pair_config, data):
+    data_store_manager = FileStoreManager(pair_config, BACKTEST_DATA_TYPE)
     """Internal function to save DataFrame to CSV."""
     df = pd.DataFrame(
         data, columns=["timestamp", "open", "high", "low", "close", "volume"]
     )
     df["datetime"] = pd.to_datetime(df["timestamp"], unit="ms")
-    filename = get_pair_filename(pair_config)
-    df.to_csv(os.path.join(SAVE_PATH, filename), index=False)
+    data_store_manager.save_dataframe(df, RAW_DATA_TYPE)
 
 
 def download_data_for_pair(pair_config):
