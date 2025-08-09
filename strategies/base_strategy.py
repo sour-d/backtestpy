@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
-from data_storage.data_storage_base import DataStorageBase
-from data_storage.historical_data_storage import HistoricalDataStorage
-from data_storage.live_data_storage import LiveDataStorage
+from data_manager.data_manager_base import DataStorageBase
+from data_manager.historical_data_manager import HistoricalDataStorage
+from data_manager.live_data_manager import LiveDataStorage
 
 class BaseStrategy(ABC):
     def __init__(self, data_storage: DataStorageBase, portfolio, **params):

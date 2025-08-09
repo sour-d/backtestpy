@@ -2,8 +2,7 @@ import pandas as pd
 from pathlib import Path
 import json
 
-from .data_store_manager_base import DataStoreManagerBase
-from utils.file_utils import get_pair_filename # Re-use existing utility
+from .storage_manager_base import DataStoreManagerBase
 
 class FileStoreManager(DataStoreManagerBase):
     """

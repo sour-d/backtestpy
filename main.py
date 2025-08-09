@@ -9,11 +9,11 @@ from calendar import month_name
 import json
 import asyncio
 
-from data_storage.historical_data_storage import HistoricalDataStorage
-from data_store_manager.data_store_manager_base import BACKTEST_DATA_TYPE, RESULT_DATA_TYPE, SUMMARY_DATA_TYPE
+from data_manager.historical_data_manager import HistoricalDataStorage
+from storage_manager.storage_manager_base import BACKTEST_DATA_TYPE, RESULT_DATA_TYPE, SUMMARY_DATA_TYPE
 from portfolio.portfolio import Portfolio
 from utils.backtestHelpers import prepare_data_for_backtest
-from data_store_manager.file_store_manager import FileStoreManager # New import
+from storage_manager.file_store_manager import FileStoreManager # New import
 
 
 def to_snake_case(name):

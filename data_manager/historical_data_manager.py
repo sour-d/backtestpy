@@ -2,7 +2,7 @@ import pandas as pd
 from collections import deque
 from datetime import datetime
 
-from .data_storage_base import DataStorageBase
+from .data_manager_base import DataStorageBase
 
 class HistoricalDataStorage(DataStorageBase):
     """
