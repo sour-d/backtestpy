@@ -31,7 +31,7 @@ download:
 	@echo "✅ Data download complete."
 
 # Command to run the backtest.
-run:
+backtest:
 	@echo "🚀 Running backtest..."
 	@python main.py
 	@echo "✅ Backtest run finished."
@@ -45,5 +45,6 @@ visualize:
 clean:
 	@echo "🧹 Cleaning generated data..."
 	@# Use -f to ignore errors if the directories or files don't exist
-	@rm -fr data/*
+	@rm -fr data/live/*
+	@rm -fr data/backtest/*
 	@echo "✅ Done."

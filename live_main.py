@@ -3,9 +3,14 @@ import yaml
 import os
 from dotenv import load_dotenv
 import pandas as pd
-import ccxt.pro as ccxtpro # Import ccxt.pro for fetching initial data
+import ccxt.pro as ccxtpro
+from datetime import datetime
 
-from data_storage.live_data_storage import LiveDataStorage
+from data_manager.live_data_manager import LiveDataStorage
+from portfolio.portfolio import Portfolio
+from strategies.moving_average_strategy import MovingAverageStrategy
+from storage_manager.file_store_manager import FileStoreManager
+from storage_manager.storage_manager_base import LIVE_DATA_TYPE
 
 async def main():
     load_dotenv()
@@ -13,67 +18,82 @@ async def main():
         config = yaml.safe_load(f)
 
     live_config = config["live_trading"]
+    portfolio_config = config["portfolio"]
     indicator_configs = config["indicators"]
+    strategy_config = config["strategy"]
+    strategy_params = strategy_config["parameters"]
 
     symbol = live_config['symbol']
     timeframe = live_config['timeframe']
     is_testnet = live_config.get('testnet', False)
+    is_test_mode = live_config.get('test', False)
 
-    # Initialize a temporary exchange instance to fetch initial historical data
-    temp_exchange = ccxtpro.bybit({
-        'apiKey': os.getenv("BYBIT_API_KEY"),
-        'secret': os.getenv("BYBIT_API_SECRET"),
-        'options': {'defaultType': 'swap'},
-    })
-    if is_testnet:
-        temp_exchange.set_sandbox_mode(True)
+    # Initialize FileStoreManager for live data
+    symbol_info = {'symbol': symbol, 'timeframe': timeframe, 'start': datetime.now().strftime('%Y-%m-%d')}
+    file_store_manager = FileStoreManager(symbol_info, data_type=LIVE_DATA_TYPE)
 
-    print(f"Fetching initial historical data for {symbol} ({timeframe})...")
-    # Fetch enough historical data for indicator calculation (e.g., 200 candles)
-    initial_candles_raw = await temp_exchange.fetch_ohlcv(symbol, timeframe, limit=500)
-    await temp_exchange.close() # Close the temporary exchange
-    await asyncio.sleep(1) # Add a small delay to respect rate limits
+    if is_test_mode:
+        print("--- Running in Live Simulation Mode ---")
+        # Load historical data for simulation
+        try:
+            initial_candles_df = pd.read_csv('data/test/raw/btcusdt_4h_all_2025.csv')
+            initial_candles_df['datetime'] = pd.to_datetime(initial_candles_df['timestamp'], unit='ms')
+            initial_candles = initial_candles_df.values.tolist()
+            simulation_data = initial_candles_df
+        except FileNotFoundError:
+            print("Error: Test data file not found at 'data/test/raw/batusdt_4h_all_2025.csv'. Exiting.")
+            return
+    else:
+        # Initialize a temporary exchange instance to fetch initial historical data
+        temp_exchange = ccxtpro.bybit({
+            'apiKey': os.getenv("BYBIT_API_KEY"),
+            'secret': os.getenv("BYBIT_API_SECRET"),
+            'options': {'defaultType': 'swap'},
+        })
+        if is_testnet:
+            temp_exchange.set_sandbox_mode(True)
 
-    if not initial_candles_raw:
-        print("Error: Could not fetch initial historical data. Exiting.")
-        return
+        print(f"Fetching initial historical data for {symbol} ({timeframe})...")
+        initial_candles_raw = await temp_exchange.fetch_ohlcv(symbol, timeframe, limit=500)
+        await temp_exchange.close()
+        await asyncio.sleep(1)
 
-    # Convert raw initial candles to the format expected by LiveDataStorage (with datetime)
-    initial_candles_df = pd.DataFrame(initial_candles_raw, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
-    initial_candles_df['datetime'] = pd.to_datetime(initial_candles_df['timestamp'], unit='ms')
-    initial_candles = initial_candles_df.values.tolist()
+        if not initial_candles_raw:
+            print("Error: Could not fetch initial historical data. Exiting.")
+            return
+
+        initial_candles_df = pd.DataFrame(initial_candles_raw, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+        initial_candles_df['datetime'] = pd.to_datetime(initial_candles_df['timestamp'], unit='ms')
+        initial_candles = initial_candles_df.values.tolist()
+        simulation_data = None
 
     data_storage = LiveDataStorage(
         symbol=symbol,
         timeframe=timeframe,
         initial_candles=initial_candles,
         indicator_configs=indicator_configs,
-        is_testnet=is_testnet
+        is_testnet=is_testnet,
+        simulation_data=simulation_data
     )
 
-    def on_new_candle_received(current_candle, historical_data):
-        print("\n--- New Live Candle Received ---")
-        print(current_candle.to_string())
-        # You can also inspect historical_data here if needed
-        # print("Historical Data Tail:")
-        # print(historical_data.tail())
-        print("total historical candles:", len(historical_data), "and all is", len(data_storage.all_candles))
-        print("--------------------------------")
+    portfolio = Portfolio(
+        capital=portfolio_config['initial_capital'],
+        risk_pct=portfolio_config['risk_pct'],
+        fee_pct=portfolio_config['fee_pct'],
+        file_store_manager=file_store_manager
+    )
 
-    data_storage.on("new_candle", on_new_candle_received)
+    strategy = MovingAverageStrategy(
+        data_storage=data_storage,
+        portfolio=portfolio,
+        **strategy_params
+    )
 
-    print(f"Starting live data stream for {symbol} ({timeframe})...")
+    print(f"Starting live trading for {symbol} ({timeframe})...")
     print("Press Ctrl+C to stop.")
-
-    try:
-        await data_storage.start_live_data()
-    except asyncio.CancelledError:
-        print("Live data stream stopped.")
-    except KeyboardInterrupt:
-        print("Live data stream interrupted by user.")
-    finally:
-        await data_storage.close()
-        print("Exchange connection closed.")
+    
+    await strategy.run_simulation()
+    portfolio.print_summary()
 
 if __name__ == "__main__":
     asyncio.run(main())

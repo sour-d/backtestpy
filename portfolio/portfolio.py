@@ -1,8 +1,9 @@
 import pandas as pd
-
+from storage_manager.file_store_manager import FileStoreManager
+from storage_manager.storage_manager_base import RESULT_DATA_TYPE, SUMMARY_DATA_TYPE
 
 class Portfolio:
-    def __init__(self, capital=100000, risk_pct=5, fee_pct=0.1):
+    def __init__(self, capital=100000, risk_pct=5, fee_pct=0.1, file_store_manager: FileStoreManager = None):
         self.initial_capital = capital
         self.capital = capital
         self.risk_pct = risk_pct
@@ -11,6 +12,7 @@ class Portfolio:
         self.total_fees_paid = 0
         self.current_trade = None
         self.trades = []
+        self.file_store_manager = file_store_manager
 
     def _calculate_position_size(self, risk_per_share, price):
         """Calculate position size based on fixed risk amount."""
@@ -121,6 +123,18 @@ class Portfolio:
 
         self.trades.append(trade_record)
         self.current_trade = None
+
+        if self.file_store_manager:
+            try:
+                trade_df = pd.DataFrame([trade_record])
+                existing_trades_df = self.file_store_manager.load_dataframe(RESULT_DATA_TYPE)
+                if not existing_trades_df.empty:
+                    updated_trades_df = pd.concat([existing_trades_df, trade_df], ignore_index=True)
+                    self.file_store_manager.save_dataframe(updated_trades_df, RESULT_DATA_TYPE)
+                else:
+                    self.file_store_manager.save_dataframe(trade_df, RESULT_DATA_TYPE)
+            except Exception as e:
+                print(f"Error saving trade record: {e}")
 
     def update_stop_loss(self, new_stop_loss):
         """Update the stop loss for the current trade."""
@@ -384,6 +398,12 @@ class Portfolio:
 
     def print_summary(self):
         summary_data = self.summary()
+
+        if self.file_store_manager:
+            try:
+                self.file_store_manager.save_json(summary_data, SUMMARY_DATA_TYPE)
+            except Exception as e:
+                print(f"Error saving summary: {e}")
         
         print("\n" + "="*60)
         print("           COMPREHENSIVE BACKTEST SUMMARY")

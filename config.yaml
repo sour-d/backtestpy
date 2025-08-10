@@ -12,10 +12,10 @@ backtest_settings:
     # - "ADA/USDT"
     # - "DOT/USDT"
   timeframes:
-    - "1m"
+    - "4h"
   periods:
     # 2025: ["june", "july"]
-    2025: ["august"]
+    2025: []
 
 # --- Indicator Pre-processing ---
 # These indicators will be calculated for the selected trading pair.
@@ -53,3 +53,4 @@ live_trading:
   symbol: "BTC/USDT"
   timeframe: "1m"
   is_testnet: true # Set to true to use the Bybit Testnet
+  test: true
