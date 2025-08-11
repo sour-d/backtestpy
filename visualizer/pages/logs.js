@@ -11,7 +11,7 @@ const LogsPage = () => {
         const res = await fetch('/api/logs');
         const data = await res.json();
         if (res.ok) {
-          setLogs(data.logs);
+          setLogs(data.logs.reverse());
         } else {
           setError(data.error);
         }

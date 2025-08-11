@@ -52,5 +52,5 @@ strategy:
 live_trading:
   symbol: "BTC/USDT"
   timeframe: "1m"
-  is_testnet: true # Set to true to use the Bybit Testnet
+  # is_testnet: true # Set to true to use the Bybit Testnet
   test: true

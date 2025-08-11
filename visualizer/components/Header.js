@@ -9,6 +9,11 @@ const Header = ({ results, selectedResult, onSelectResult, showComparisonLink = 
         <Typography variant="h5" component="div" sx={{ flexGrow: 1 }}>
           Backtest Visualizer
         </Typography>
+        <Link href="/ping" passHref legacyBehavior>
+            <Button color="inherit" sx={{ mr: 2 }}>
+              Ping
+            </Button>
+          </Link>
         <Link href="/config" passHref legacyBehavior>
             <Button color="inherit" sx={{ mr: 2 }}>
               Config
