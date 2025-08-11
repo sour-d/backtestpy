@@ -207,7 +207,7 @@ class LiveDataStorage(DataStorageBase, EventEmitter):
                 self.logger.error(f"Error in start_live_data: {e}")
             raise e  # Re-raise the exception to be handled by the caller
         finally:
-            await self.close()f) # Process the current window
+            await self.close() # Process the current window
         self._current_step += 1
 
         # Save the processed data

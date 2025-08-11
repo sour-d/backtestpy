@@ -38,13 +38,13 @@ async def main():
         app_logger.info("Running in Live Simulation Mode")
         # Load historical data for simulation
         try:
-            initial_candles_df = pd.read_csv('data/test/raw/batusdt_4h_all_2025.csv')
+            initial_candles_df = pd.read_csv('data/test/raw/btcusdt_4h_all_2025.csv')
             initial_candles_df['datetime'] = pd.to_datetime(initial_candles_df['timestamp'], unit='ms')
             initial_candles = initial_candles_df.values.tolist()
             simulation_data = initial_candles_df
             app_logger.info(f"Loaded {len(initial_candles)} candles from test data")
         except FileNotFoundError:
-            app_logger.error("Test data file not found at 'data/test/raw/batusdt_4h_all_2025.csv'. Exiting.")
+            app_logger.error("Test data file not found at 'data/test/raw/btcusdt_4h_all_2025.csv'. Exiting.")
             return
     else:
         app_logger.info("Running in Live Mode")

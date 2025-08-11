@@ -38,7 +38,7 @@ const Header = ({ results, selectedResult, onSelectResult, showComparisonLink = 
             displayEmpty
             inputProps={{ 'aria-label': 'Select result' }}
           >
-            {results.map((result) => (
+            {results?.map((result) => (
               <MenuItem key={result} value={result}>
                 {result}
               </MenuItem>

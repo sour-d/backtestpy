@@ -3,7 +3,7 @@ import path from 'path';
 
 export default function handler(req, res) {
   if (req.method === 'POST') {
-    const logFilePath = path.resolve(process.cwd(), '../../logs/ping.txt');
+    const logFilePath = path.resolve(process.cwd(), '../logs/ping.txt');
     const now = new Date();
     const istTime = now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
 
@@ -24,7 +24,7 @@ export default function handler(req, res) {
       fs.writeFileSync(logFilePath, existingLogs.join('\n') + '\n');
       res.status(200).json({ message: 'Ping logged successfully' });
     } catch (error) {
-      res.status(500).json({ error: 'Failed to write to ping log file' });
+      res.status(500).json({ message: 'Failed to write to ping log file', error });
     }
   } else {
     res.status(405).json({ error: 'Method not allowed' });

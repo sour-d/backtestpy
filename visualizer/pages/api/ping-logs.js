@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 
 export default function handler(req, res) {
-  const logFilePath = path.resolve(process.cwd(), '../../logs/ping.txt');
+  const logFilePath = path.resolve(process.cwd(), '../logs/ping.txt');
 
   try {
     const logData = fs.readFileSync(logFilePath, 'utf8');

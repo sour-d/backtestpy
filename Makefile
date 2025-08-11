@@ -36,10 +36,23 @@ backtest:
 	@python main.py
 	@echo "✅ Backtest run finished."
 
+# command for live trading
+live: 
+	@echo "🚀 Starting live trading..."
+	@python live_main.py
+	@echo "✅ Live trading started."
+
 # Command to start the visualizer web server.
 visualize:
 	@echo "📈 Starting visualizer server..."
 	@cd visualizer && npm run dev
+
+start-dev:
+	@echo "🚀 Starting development server and ping script..."
+	@cd visualizer && npm run dev &
+	@sleep 5 # Give the server a moment to start
+	@python ping_server.py &
+	@echo "✅ Development server and ping script started."
 
 # Command to clean generated files
 clean:
@@ -47,4 +60,5 @@ clean:
 	@# Use -f to ignore errors if the directories or files don't exist
 	@rm -fr data/live/*
 	@rm -fr data/backtest/*
+	@rm -fr logs/*
 	@echo "✅ Done."
