@@ -4,7 +4,7 @@ from data_manager.historical_data_manager import HistoricalDataStorage
 from data_manager.live_data_manager import LiveDataStorage
 
 class BaseStrategy(ABC):
-    def __init__(self, data_storage: DataStorageBase, portfolio, **params):
+    def __init__(self, data_storage: DataStorageBase, portfolio, logger=None, **params):
         self.data_storage = data_storage
         self.portfolio = portfolio
         self.params = params
@@ -12,6 +12,7 @@ class BaseStrategy(ABC):
         self.trailing_stop_enabled = self.params.get("trailing_stop_enabled", False)
         self.trailing_stop_pct = self.params.get("trailing_stop_pct", 0.02)  # 2% trailing stop
         self.debug_trailing_stops = self.params.get("debug_trailing_stops", False)
+        self.logger = logger
 
     @abstractmethod
     def buy_signal(self):
@@ -63,8 +64,12 @@ class BaseStrategy(ABC):
             entry_date=self.data_storage.current_date,
             entry_step=self.data_storage.current_step,
         )
+        if self.logger:
+            self.logger.info(f"Trade signal: {trade_type} at {price}")
 
     def _liquidate(self, price=0, reason="signal_exit"):
+        if self.logger:
+            self.logger.info(f"Liquidation signal: {reason} at {price}")
         # Use current_candle for liquidation price if not provided
         if price == 0 and self.data_storage.current_candle() is not None:
             price = self.data_storage.current_candle()["close"]
@@ -125,8 +130,8 @@ class BaseStrategy(ABC):
         
         # Update the stop loss in the portfolio
         if new_stop is not None:
-            if self.debug_trailing_stops:
-                print(f"📈 Trailing stop updated: {current_stop:.4f} -> {new_stop:.4f} ({trade['type']} position)")
+            if self.debug_trailing_stops and self.logger:
+                self.logger.info(f"📈 Trailing stop updated: {current_stop:.4f} -> {new_stop:.4f} ({trade['type']} position)")
             self.portfolio.update_stop_loss(new_stop)
 
     def _check_stop_loss(self, trade):
@@ -135,10 +140,14 @@ class BaseStrategy(ABC):
         
         if trade["type"] == "buy":
             if today["low"] <= trade["stop_loss"]:
+                if self.logger:
+                    self.logger.info(f"Stop loss hit for buy trade at {trade['stop_loss']}")
                 self._liquidate(trade["stop_loss"], "stop_loss")
                 stop_loss_hit = True
         elif trade["type"] == "sell":
             if today["high"] >= trade["stop_loss"]:
+                if self.logger:
+                    self.logger.info(f"Stop loss hit for sell trade at {trade['stop_loss']}")
                 self._liquidate(trade["stop_loss"], "stop_loss")
                 stop_loss_hit = True
         

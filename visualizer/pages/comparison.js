@@ -10,7 +10,8 @@ const ComparisonPage = () => {
   useEffect(() => {
     const fetchAllSummaries = async () => {
       try {
-        const response = await fetch('/api/results?allSummaries=true');
+        const savedMode = localStorage.getItem('visualizer_mode') || 'backtest';
+        const response = await fetch(`/api/results?allSummaries=true&mode=${savedMode}`);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }

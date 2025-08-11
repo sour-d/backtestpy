@@ -3,7 +3,7 @@ from storage_manager.file_store_manager import FileStoreManager
 from storage_manager.storage_manager_base import RESULT_DATA_TYPE, SUMMARY_DATA_TYPE
 
 class Portfolio:
-    def __init__(self, capital=100000, risk_pct=5, fee_pct=0.1, file_store_manager: FileStoreManager = None):
+    def __init__(self, capital=100000, risk_pct=5, fee_pct=0.1, file_store_manager: FileStoreManager = None, logger=None):
         self.initial_capital = capital
         self.capital = capital
         self.risk_pct = risk_pct
@@ -13,6 +13,7 @@ class Portfolio:
         self.current_trade = None
         self.trades = []
         self.file_store_manager = file_store_manager
+        self.logger = logger
 
     def _calculate_position_size(self, risk_per_share, price):
         """Calculate position size based on fixed risk amount."""
@@ -41,6 +42,8 @@ class Portfolio:
 
         qty = self._calculate_position_size(risk_per_share, price)
         if qty == 0:
+            if self.logger:
+                self.logger.warning("Could not open position, quantity is 0")
             return
 
         trade_value = qty * price
@@ -71,6 +74,8 @@ class Portfolio:
             "entry_date": entry_date,
             "entry_fee": entry_fee,
         }
+        if self.logger:
+            self.logger.info(f"Opened {trade_type} position: {self.current_trade}")
 
     def close_position(self, price, exit_date, exit_step, action="exit"):
         if not self.current_trade:
@@ -124,6 +129,9 @@ class Portfolio:
         self.trades.append(trade_record)
         self.current_trade = None
 
+        if self.logger:
+            self.logger.info(f"Closed position: {trade_record}")
+
         if self.file_store_manager:
             try:
                 trade_df = pd.DataFrame([trade_record])
@@ -133,13 +141,19 @@ class Portfolio:
                     self.file_store_manager.save_dataframe(updated_trades_df, RESULT_DATA_TYPE)
                 else:
                     self.file_store_manager.save_dataframe(trade_df, RESULT_DATA_TYPE)
+                if self.logger:
+                    self.logger.info(f"Saved trade record to file")
             except Exception as e:
-                print(f"Error saving trade record: {e}")
+                if self.logger:
+                    self.logger.error(f"Error saving trade record: {e}")
 
     def update_stop_loss(self, new_stop_loss):
         """Update the stop loss for the current trade."""
         if self.current_trade:
+            old_stop_loss = self.current_trade["stop_loss"]
             self.current_trade["stop_loss"] = new_stop_loss
+            if self.logger:
+                self.logger.info(f"Updated stop loss from {old_stop_loss} to {new_stop_loss}")
 
     def close_any_open_trade(self, current_price, current_date, current_step):
         """Close any remaining open trade at the end of backtesting."""

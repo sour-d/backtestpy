@@ -14,7 +14,7 @@ from storage_manager.file_store_manager import FileStoreManager
 from storage_manager.storage_manager_base import LIVE_DATA_TYPE, RAW_DATA_TYPE, PROCESSED_DATA_TYPE
 
 class LiveDataStorage(DataStorageBase, EventEmitter):
-    def __init__(self, symbol: str, timeframe: str, initial_candles: list, indicator_configs: list, is_testnet: bool = True, simulation_data: pd.DataFrame = None):
+    def __init__(self, symbol: str, timeframe: str, initial_candles: list, indicator_configs: list, is_testnet: bool = True, simulation_data: pd.DataFrame = None, logger=None):
         DataStorageBase.__init__(self, pd.DataFrame())
         EventEmitter.__init__(self)
         
@@ -25,6 +25,7 @@ class LiveDataStorage(DataStorageBase, EventEmitter):
         self.simulation_mode = simulation_data is not None
         self.simulation_data = simulation_data
         self.simulation_step = 0
+        self.logger = logger
 
         if not self.simulation_mode:
             load_dotenv()
@@ -32,6 +33,8 @@ class LiveDataStorage(DataStorageBase, EventEmitter):
             api_secret = os.getenv("BYBIT_API_SECRET")
 
             if not api_key or not api_secret:
+                if self.logger:
+                    self.logger.error("BYBIT_API_KEY and BYBIT_API_SECRET must be set in a .env file for LiveDataStorage.")
                 raise ValueError("BYBIT_API_KEY and BYBIT_API_SECRET must be set in a .env file for LiveDataStorage.")
 
             self.exchange = ccxtpro.bybit({
@@ -80,12 +83,14 @@ class LiveDataStorage(DataStorageBase, EventEmitter):
         # Save initial processed candles to file
         self.file_store_manager.save_dataframe(self.data_df, PROCESSED_DATA_TYPE)
 
-        print(f"LiveDataStorage initialized for {symbol} ({timeframe}). Initial data saved.")
+        if self.logger:
+            self.logger.info(f"LiveDataStorage initialized for {symbol} ({timeframe}). Initial data saved.")
 
     async def connect(self):
         if not self.simulation_mode:
             await self.exchange.load_markets()
-            print(f"Connected to Bybit for {self.symbol} ({self.timeframe}).")
+            if self.logger:
+                self.logger.info(f"Connected to Bybit for {self.symbol} ({self.timeframe}).")
 
     async def get_next_processed_data(self):
         """
@@ -96,6 +101,8 @@ class LiveDataStorage(DataStorageBase, EventEmitter):
         if self.simulation_mode:
             if self.simulation_step < len(self.simulation_data):
                 completed_candle_raw = self.simulation_data.iloc[self.simulation_step].values.tolist()
+                if self.logger:
+                    self.logger.info(f"Simulating new candle: {completed_candle_raw}")
                 self.simulation_step += 1
             else:
                 return None, None # No more simulation data
@@ -111,12 +118,17 @@ class LiveDataStorage(DataStorageBase, EventEmitter):
 
                 if self.all_candles and completed_candle_timestamp <= self.all_candles[-1][0]:
                     return None, None
+                
+                if self.logger:
+                    self.logger.info(f"New candle received: {completed_candle_raw}")
 
             except asyncio.CancelledError:
-                print("WebSocket watch cancelled.")
+                if self.logger:
+                    self.logger.warning("WebSocket watch cancelled.")
                 return None, None
             except Exception as e:
-                print(f"Error in LiveDataStorage.get_next_processed_data(): {e}")
+                if self.logger:
+                    self.logger.error(f"Error in LiveDataStorage.get_next_processed_data(): {e}")
                 raise e
 
         # Convert raw candle to pandas Series with datetime and IST
@@ -139,7 +151,8 @@ class LiveDataStorage(DataStorageBase, EventEmitter):
                 # If file was empty, save the new candle directly
                 self.file_store_manager.save_dataframe(candle_df_single, RAW_DATA_TYPE)
         except Exception as e:
-            print(f"Error saving live raw data: {e}")
+            if self.logger:
+                self.logger.error(f"Error saving live raw data: {e}")
 
         self.all_candles.append(completed_candle.values.tolist()) # Store as list for deque consistency
         
@@ -153,6 +166,48 @@ class LiveDataStorage(DataStorageBase, EventEmitter):
         temp_df['datetime_ist'] = pd.to_datetime(temp_df['datetime_ist']) # Ensure datetime objects
 
         self.data_df = self.indicator_processor.process(temp_df) # Process the current window
+        self._current_step += 1
+
+        # Save the processed data
+        try:
+            self.file_store_manager.save_dataframe(self.data_df, PROCESSED_DATA_TYPE)
+        except Exception as e:
+            if self.logger:
+                self.logger.error(f"Error saving live processed data: {e}")
+
+        return self.current_candle(), self.data_df
+
+    async def start_live_data(self):
+        """
+        Starts the continuous live data fetching loop.
+        Emits 'new_candle' event for each new processed candle.
+        """
+        if not self.simulation_mode:
+            await self.connect()
+        try:
+            while True:
+                current_candle, historical_data = await self.get_next_processed_data()
+                if current_candle is not None: # Only emit if a new completed candle was processed
+                    self.emit("new_candle", current_candle=current_candle, historical_data=historical_data)
+                    if self.simulation_mode:
+                        await asyncio.sleep(0.01) # a small delay to simulate live ticks
+                    else:
+                        await asyncio.sleep(0.1) # Small delay to prevent busy-waiting
+                else:
+                    if self.simulation_mode:
+                        if self.logger:
+                            self.logger.info("--- Live Simulation Finished ---")
+                        break # End of simulation
+
+        except asyncio.CancelledError:
+            if self.logger:
+                self.logger.warning("Live data stream cancelled.")
+        except Exception as e:
+            if self.logger:
+                self.logger.error(f"Error in start_live_data: {e}")
+            raise e  # Re-raise the exception to be handled by the caller
+        finally:
+            await self.close()f) # Process the current window
         self._current_step += 1
 
         # Save the processed data

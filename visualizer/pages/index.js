@@ -32,20 +32,24 @@ const Home = () => {
   const [summary, setSummary] = useState(null);
   const [chartData, setChartData] = useState([]);
   const [tradeData, setTradeData] = useState([]);
+  const [mode, setMode] = useState('backtest');
 
   useEffect(() => {
-    fetch('/api/results')
+    const savedMode = localStorage.getItem('visualizer_mode') || 'backtest';
+    setMode(savedMode);
+
+    fetch(`/api/results?mode=${savedMode}`)
       .then(res => res.json())
       .then(data => {
         setResults(data);
         if (data.length > 0) {
-          loadResult(data[0]);
+          loadResult(data[0], savedMode);
         }
       });
   }, []);
 
-  const loadResult = (resultName) => {
-    fetch(`/api/results?name=${resultName}`)
+  const loadResult = (resultName, currentMode) => {
+    fetch(`/api/results?name=${resultName}&mode=${currentMode}`)
       .then(res => res.json())
       .then(data => {
         setSelectedResult(resultName);
@@ -73,9 +77,13 @@ const Home = () => {
       });
   };
 
+  const handleSelectResult = (resultName) => {
+    loadResult(resultName, mode);
+  }
+
   return (
     <Container maxWidth={false} sx={{ padding: '20px' }}>
-      <Header results={results} selectedResult={selectedResult} onSelectResult={loadResult} showComparisonLink={true} />
+      <Header results={results} selectedResult={selectedResult} onSelectResult={handleSelectResult} showComparisonLink={true} />
 
       {summary && <SummarySection summary={summary} />}
 

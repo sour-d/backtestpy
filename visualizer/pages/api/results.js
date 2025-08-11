@@ -3,7 +3,8 @@ import path from 'path';
 import Papa from 'papaparse';
 
 export default async function handler(req, res) {
-  const dataDir = path.join(process.cwd(), '..', 'data');
+  const { mode = 'backtest' } = req.query;
+  const dataDir = path.join(process.cwd(), '..', 'data', mode);
   const summaryDir = path.join(dataDir, 'summary');
   const resultDir = path.join(dataDir, 'result');
   const processedDir = path.join(dataDir, 'processed');
