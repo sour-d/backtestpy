@@ -1,8 +1,33 @@
 import logging
-from logging.handlers import RotatingFileHandler
 import os
+from logging.handlers import RotatingFileHandler # Keep for reference if needed
 
-def setup_logger(name, log_file, level=logging.INFO, max_bytes=10000, backup_count=5):
+class MaxLinesRotatingFileHandler(logging.FileHandler):
+    def __init__(self, filename, mode='a', encoding=None, delay=False, max_lines=100):
+        super().__init__(filename, mode, encoding, delay)
+        self.max_lines = max_lines
+        self.buffer = []
+
+    def emit(self, record):
+        # Format the record first
+        msg = self.format(record)
+        self.buffer.append(msg)
+
+        # If buffer exceeds max_lines, truncate it
+        if len(self.buffer) > self.max_lines:
+            self.buffer = self.buffer[-self.max_lines:]
+
+        # Write the entire buffer to the file
+        # This is inefficient for very large files/buffers, but for 100 lines it's fine.
+        self.acquire()
+        try:
+            with open(self.baseFilename, 'w', encoding=self.encoding) as f:
+                for line in self.buffer:
+                    f.write(line + self.terminator)
+        finally:
+            self.release()
+
+def setup_logger(name, log_file, level=logging.INFO, max_lines=100):
     """Function to setup as many loggers as you want"""
 
     # Create logs directory if it doesn't exist
@@ -13,7 +38,7 @@ def setup_logger(name, log_file, level=logging.INFO, max_bytes=10000, backup_cou
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
     # File handler
-    handler = RotatingFileHandler(log_file, maxBytes=max_bytes, backupCount=backup_count)
+    handler = MaxLinesRotatingFileHandler(log_file, max_lines=max_lines)
     handler.setFormatter(formatter)
 
     # Console handler
