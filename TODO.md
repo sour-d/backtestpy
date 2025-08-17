@@ -1,0 +1,7 @@
+- [] need to create the comparison table
+- [] need to check how trailing working
+- [] change data from spot to futures
+- [] check why without trailing stoploss time is wrong
+- [] adding more data in cli log for timeframe
+- [] check backtest runtime.
+- [] fix chart

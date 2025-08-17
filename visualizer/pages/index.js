@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
-import { Container, Box } from '@mui/material';
+import { Container, Box, Select, MenuItem, Typography } from '@mui/material';
 
 import Header from '../components/Header';
 import SummarySection from '../components/SummarySection';
@@ -41,6 +41,10 @@ const Home = () => {
     fetch(`/api/results?mode=${savedMode}`)
       .then(res => res.json())
       .then(data => {
+        if (data.message) {
+          console.error('Error fetching results:', data.message);
+          return;
+        }
         setResults(data);
         if (data.length > 0) {
           loadResult(data[0], savedMode);
@@ -77,13 +81,32 @@ const Home = () => {
       });
   };
 
-  const handleSelectResult = (resultName) => {
-    loadResult(resultName, mode);
+  const handleSelectResult = (event) => {
+    loadResult(event.target.value, mode);
   }
 
   return (
     <Container maxWidth={false} sx={{ padding: '20px' }}>
-      <Header results={results} selectedResult={selectedResult} onSelectResult={handleSelectResult} showComparisonLink={true} />
+      <Header />
+
+      <Box sx={{ minWidth: 120, marginBottom: '20px' }}>
+        <Typography variant="h6" gutterBottom>
+          Select Result:
+        </Typography>
+        <Select
+          value={selectedResult || ''}
+          onChange={handleSelectResult}
+          displayEmpty
+          inputProps={{ 'aria-label': 'Select result' }}
+          sx={{ width: '100%', maxWidth: '300px' }}
+        >
+          {results.map((result) => (
+            <MenuItem key={result} value={result}>
+              {result}
+            </MenuItem>
+          ))}
+        </Select>
+      </Box>
 
       {summary && <SummarySection summary={summary} />}
 

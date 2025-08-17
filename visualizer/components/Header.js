@@ -1,50 +1,40 @@
 import React from 'react';
-import { AppBar, Toolbar, Typography, Select, MenuItem, Box, Button } from '@mui/material';
+import { AppBar, Toolbar, Typography, Button } from '@mui/material';
 import Link from 'next/link';
 
-const Header = ({ results, selectedResult, onSelectResult, showComparisonLink = true }) => {
+const Header = () => {
   return (
     <AppBar position="static" sx={{ marginBottom: '20px' }}>
       <Toolbar>
         <Typography variant="h5" component="div" sx={{ flexGrow: 1 }}>
           Backtest Visualizer
         </Typography>
-        <Link href="/ping" passHref legacyBehavior>
-            <Button color="inherit" sx={{ mr: 2 }}>
-              Ping
-            </Button>
-          </Link>
+        <Link href="/" passHref legacyBehavior>
+          <Button color="inherit" sx={{ mr: 2 }}>
+            Home
+          </Button>
+        </Link>
+        <Link href="/comparison" passHref legacyBehavior>
+          <Button color="inherit" sx={{ mr: 2 }}>
+            Compare Backtests
+          </Button>
+        </Link>
         <Link href="/config" passHref legacyBehavior>
-            <Button color="inherit" sx={{ mr: 2 }}>
-              Config
-            </Button>
-          </Link>
+          <Button color="inherit" sx={{ mr: 2 }}>
+            Config
+          </Button>
+        </Link>
+        <Link href="/ping" passHref legacyBehavior>
+          <Button color="inherit" sx={{ mr: 2 }}>
+            Ping Logs
+          </Button>
+        </Link>
         <Link href="/logs" passHref legacyBehavior>
-            <Button color="inherit" sx={{ mr: 2 }}>
-              Logs
-            </Button>
-          </Link>
-        {showComparisonLink && (
-          <Link href="/comparison" passHref legacyBehavior>
-            <Button color="inherit" sx={{ mr: 2 }}>
-              Compare Backtests
-            </Button>
-          </Link>
-        )}
-        <Box sx={{ minWidth: 120 }}>
-          <Select
-            value={selectedResult || ''}
-            onChange={(e) => onSelectResult(e.target.value)}
-            displayEmpty
-            inputProps={{ 'aria-label': 'Select result' }}
-          >
-            {results?.map((result) => (
-              <MenuItem key={result} value={result}>
-                {result}
-              </MenuItem>
-            ))}
-          </Select>
-        </Box>
+          <Button color="inherit" sx={{ mr: 2 }}>
+            Server Logs
+          </Button>
+        </Link>
+
       </Toolbar>
     </AppBar>
   );

@@ -3,19 +3,19 @@
 backtest_settings:
   symbols:
     - "BTC/USDT"
-    # - "ETH/USDT"
-    # - "SOL/USDT"
-    # - "GALA/USDT"
-    # - "XRP/USDT"
-    # - "LTC/USDT"
-    # - "BNB/USDT"
-    # - "ADA/USDT"
-    # - "DOT/USDT"
+    - "ETH/USDT"
+    - "SOL/USDT"
+    - "GALA/USDT"
+    - "XRP/USDT"
+    - "LTC/USDT"
+    - "BNB/USDT"
+    - "ADA/USDT"
+    - "DOT/USDT"
   timeframes:
     - "4h"
   periods:
     # 2025: ["june", "july"]
-    2025: []
+    2024: []
 
 # --- Indicator Pre-processing ---
 # These indicators will be calculated for the selected trading pair.
@@ -45,7 +45,7 @@ strategy:
     ma_period: 20
     supertrend_period: 10
     supertrend_multiplier: 3
-    trailing_stop_enabled: true
+    # trailing_stop_enabled: true
     trailing_stop_pct: 0.02  # 2% trailing stop
 
 # --- Live Trading Settings ---

@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import datetime
 from data_manager.data_manager_base import DataStorageBase
 from data_manager.historical_data_manager import HistoricalDataStorage
 from data_manager.live_data_manager import LiveDataStorage
@@ -102,34 +103,65 @@ class BaseStrategy(ABC):
             )
 
     def _update_trailing_stop(self, trade):
-        """Update trailing stop loss based on current price movement."""
+        """Update trailing stop loss based on current price movement, ensuring it doesn't immediately liquidate."""
         if not self.trailing_stop_enabled:
             return
 
         today = self.data_storage.current_candle()
         current_high = today["high"]
         current_low = today["low"]
+        current_close = today["close"]
         current_stop = trade["stop_loss"]
-        new_stop = None
+        previous_candle = self.data_storage.previous_candle_of(0)  # Get the last processed candle
+        previous_high = previous_candle["high"]
+        previous_low = previous_candle["low"]
+        previous_close = previous_candle["close"]
         
+        # Calculate the potential new stop based purely on the trailing logic
+        potential_new_stop = None
+
         if trade["type"] == "buy":
             # For long positions, trail the stop up when price moves favorably
-            new_trailing_stop = current_high * (1 - self.trailing_stop_pct)
+            potential_new_stop = current_close * (1 - self.trailing_stop_pct)
             
-            # Only update if the new trailing stop is higher than current stop
-            if new_trailing_stop > current_stop:
-                new_stop = new_trailing_stop
-                
+            # Check if this potential new stop is more favorable than the current stop
+            if potential_new_stop > current_stop:
+                # Now, check if setting this potential_new_stop would cause immediate liquidation
+                # For a buy, immediate liquidation means potential_new_stop >= current_close
+                if potential_new_stop >= current_close:
+                    # If it would liquidate immediately, do NOT update the stop. Keep the old one.
+                    if self.logger:
+                        self.logger.info(f"Trailing stop (Buy) not updated: Potential {potential_new_stop:.4f} would liquidate immediately (Close: {current_close:.4f}). Keeping old stop {current_stop:.4f}.")
+                    return # Keep the old stop
+                else:
+                    # It's favorable and won't liquidate immediately, so update.
+                    new_stop = potential_new_stop
+            else:
+                # Not favorable, so don't update. Keep the old stop.
+                return
+
         elif trade["type"] == "sell":
             # For short positions, trail the stop down when price moves favorably
-            new_trailing_stop = current_low * (1 + self.trailing_stop_pct)
+            potential_new_stop = current_close * (1 + self.trailing_stop_pct)
             
-            # Only update if the new trailing stop is lower than current stop
-            if new_trailing_stop < current_stop:
-                new_stop = new_trailing_stop
+            # Check if this potential new stop is more favorable than the current stop
+            if potential_new_stop < current_stop:
+                # Now, check if setting this potential_new_stop would cause immediate liquidation
+                # For a sell, immediate liquidation means potential_new_stop <= current_close
+                if potential_new_stop <= current_close:
+                    # If it would liquidate immediately, do NOT update the stop. Keep the old one.
+                    if self.logger:
+                        self.logger.info(f"Trailing stop (Sell) not updated: Potential {potential_new_stop:.4f} would liquidate immediately (Close: {current_close:.4f}). Keeping old stop {current_stop:.4f}.")
+                    return # Keep the old stop
+                else:
+                    # It's favorable and won't liquidate immediately, so update.
+                    new_stop = potential_new_stop
+            else:
+                # Not favorable, so don't update. Keep the old stop.
+                return
         
-        # Update the stop loss in the portfolio
-        if new_stop is not None:
+        # If we reached here, it means new_stop was assigned a value and should be updated
+        if new_stop is not None: # This check is technically redundant now but harmless
             if self.debug_trailing_stops and self.logger:
                 self.logger.info(f"📈 Trailing stop updated: {current_stop:.4f} -> {new_stop:.4f} ({trade['type']} position)")
             self.portfolio.update_stop_loss(new_stop)
@@ -139,13 +171,19 @@ class BaseStrategy(ABC):
         stop_loss_hit = False
         
         if trade["type"] == "buy":
-            if today["low"] <= trade["stop_loss"]:
+            if today["low"] <= trade["stop_loss"] and not today["open"] > trade["stop_loss"]: # Re-enabled condition
+                if self.logger:
+                    self.logger.info(f"Abnormal SL hit (Buy): SL={trade['stop_loss']:.2f}, Open={today['open']:.2f}, High={today['high']:.2f}, Low={today['low']:.2f}, Close={today['close']:.2f} at {today['datetime']}")
+            if today["low"] <= trade["stop_loss"] and today["open"] > trade["stop_loss"]: # Re-enabled condition
                 if self.logger:
                     self.logger.info(f"Stop loss hit for buy trade at {trade['stop_loss']}")
                 self._liquidate(trade["stop_loss"], "stop_loss")
                 stop_loss_hit = True
         elif trade["type"] == "sell":
-            if today["high"] >= trade["stop_loss"]:
+            if today["high"] >= trade["stop_loss"] and not today["open"] < trade["stop_loss"]: # Re-enabled condition
+                if self.logger:
+                    self.logger.info(f"Abnormal SL hit (Sell): SL={trade['stop_loss']:.2f}, Open={today['open']:.2f}, High={today['high']:.2f}, Low={today['low']:.2f}, Close={today['close']:.2f} at {today['datetime']}")
+            if today["high"] >= trade["stop_loss"] and today["open"] < trade["stop_loss"]: # Re-enabled condition
                 if self.logger:
                     self.logger.info(f"Stop loss hit for sell trade at {trade['stop_loss']}")
                 self._liquidate(trade["stop_loss"], "stop_loss")

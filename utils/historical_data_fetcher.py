@@ -20,7 +20,7 @@ def _fetch_ohlcv(exchange, symbol, timeframe, since_ms, until_ms, pair_config):
     while since_ms < until_ms:
         try:
             data = exchange.fetch_ohlcv(
-                symbol, timeframe=timeframe, since=since_ms, limit=limit
+                symbol, timeframe=timeframe, since=since_ms, limit=limit, 
             )
 
             if not data:

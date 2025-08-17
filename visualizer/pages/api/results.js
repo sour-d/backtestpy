@@ -28,9 +28,7 @@ export default async function handler(req, res) {
         const symbolPart = parts[0]; // e.g., "BTC-USDT"
         const timeframe = parts[1]; // e.g., "1d"
 
-        // Convert "BTC-USDT" to "btcusdt" for processed file lookup
-        const processedSymbol = symbolPart.toLowerCase().replace('-', '');
-        const rawDataFileName = `${processedSymbol}_${timeframe}.csv`;
+        const rawDataFileName = `${resultName}.csv`;
         const rawDataPath = path.join(processedDir, rawDataFileName);
 
         let rawData = [];

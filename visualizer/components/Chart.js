@@ -98,7 +98,7 @@ const ChartComponent = ({ data, trades = [], title = "Candlestick Chart" }) => {
       .filter(d => !isNaN(d.time));
 
     // Sort data by time in ascending order
-    validData.sort((a, b) => a.time - b.time);
+    // validData.sort((a, b) => a.time - b.time);
 
 
     const formattedCandleData = validData.map(d => ({
@@ -115,8 +115,10 @@ const ChartComponent = ({ data, trades = [], title = "Candlestick Chart" }) => {
       color: d.close > d.open ? 'rgba(38, 166, 154, 0.5)' : 'rgba(239, 83, 80, 0.5)',
     }));
 
+    console.log('Formatted Candle Data:', formattedCandleData);
+
     candlestickSeriesRef.current.setData(formattedCandleData);
-    volumeSeriesRef.current.setData(formattedVolumeData);
+    // volumeSeriesRef.current.setData(formattedVolumeData);
 
     // Add markers for trades
     const markers = [];
@@ -166,8 +168,8 @@ const ChartComponent = ({ data, trades = [], title = "Candlestick Chart" }) => {
         text: 'E',
       });
     });
-    const seriesMarker = createSeriesMarkers(candlestickSeriesRef.current, markers);
-    setSeriesMarker(seriesMarker);
+    // const seriesMarker = createSeriesMarkers(candlestickSeriesRef.current, markers);
+    // setSeriesMarker(seriesMarker);
 
     chartRef.current.timeScale().fitContent();
     // Ensure all markers are visible by setting the visible range
