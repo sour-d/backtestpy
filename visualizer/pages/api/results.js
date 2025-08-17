@@ -49,7 +49,14 @@ export default async function handler(req, res) {
           files.filter(file => file.endsWith('.json')).map(async file => {
             const summaryPath = path.join(summaryDir, file);
             const summaryContent = await fs.readFile(summaryPath, 'utf8');
-            return JSON.parse(summaryContent);
+            const summary = JSON.parse(summaryContent);
+            
+            // Extract symbol and timeframe from the file name
+            const parts = file.replace('.json', '').split('_');
+            const symbol = parts[0];
+            const timeframe = parts[1];
+
+            return { ...summary, symbol, timeframe };
           })
         );
         res.status(200).json(summaries);

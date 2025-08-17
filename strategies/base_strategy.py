@@ -171,19 +171,27 @@ class BaseStrategy(ABC):
         stop_loss_hit = False
         
         if trade["type"] == "buy":
-            if today["low"] <= trade["stop_loss"] and not today["open"] > trade["stop_loss"]: # Re-enabled condition
+            # Condition 1: Price gaps below the stop loss
+            if today["open"] <= trade["stop_loss"]:
                 if self.logger:
-                    self.logger.info(f"Abnormal SL hit (Buy): SL={trade['stop_loss']:.2f}, Open={today['open']:.2f}, High={today['high']:.2f}, Low={today['low']:.2f}, Close={today['close']:.2f} at {today['datetime']}")
-            if today["low"] <= trade["stop_loss"] and today["open"] > trade["stop_loss"]: # Re-enabled condition
+                    self.logger.info(f"Stop loss hit for buy trade at {today['open']} (gap down)")
+                self._liquidate(today["open"], "stop_loss")
+                stop_loss_hit = True
+            # Condition 2: Price hits the stop loss during the day
+            elif today["low"] <= trade["stop_loss"]:
                 if self.logger:
                     self.logger.info(f"Stop loss hit for buy trade at {trade['stop_loss']}")
                 self._liquidate(trade["stop_loss"], "stop_loss")
                 stop_loss_hit = True
         elif trade["type"] == "sell":
-            if today["high"] >= trade["stop_loss"] and not today["open"] < trade["stop_loss"]: # Re-enabled condition
+            # Condition 1: Price gaps above the stop loss
+            if today["open"] >= trade["stop_loss"]:
                 if self.logger:
-                    self.logger.info(f"Abnormal SL hit (Sell): SL={trade['stop_loss']:.2f}, Open={today['open']:.2f}, High={today['high']:.2f}, Low={today['low']:.2f}, Close={today['close']:.2f} at {today['datetime']}")
-            if today["high"] >= trade["stop_loss"] and today["open"] < trade["stop_loss"]: # Re-enabled condition
+                    self.logger.info(f"Stop loss hit for sell trade at {today['open']} (gap up)")
+                self._liquidate(today["open"], "stop_loss")
+                stop_loss_hit = True
+            # Condition 2: Price hits the stop loss during the day
+            elif today["high"] >= trade["stop_loss"]:
                 if self.logger:
                     self.logger.info(f"Stop loss hit for sell trade at {trade['stop_loss']}")
                 self._liquidate(trade["stop_loss"], "stop_loss")

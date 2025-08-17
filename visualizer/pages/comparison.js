@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Typography, Box, CircularProgress, Paper, Grid } from '@mui/material';
 import Header from '../components/Header';
+import ComparisonTable from '../components/ComparisonTable';
 
 const ComparisonPage = () => {
   const [summaries, setSummaries] = useState([]);
@@ -154,30 +155,33 @@ const ComparisonPage = () => {
         {loading && <Box sx={{ display: 'flex', justifyContent: 'center' }}><CircularProgress /></Box>}
         {error && <Typography color="error">Error: {error}</Typography>}
 
-        {!loading && !error && !aggregatedSummary && (
+        {!loading && !error && summaries.length === 0 && (
           <Typography sx={{ color: 'text.secondary' }}>No backtest summaries found for comparison.</Typography>
         )}
 
-        {!loading && !error && aggregatedSummary && (
-          <Paper sx={{ p: 3, mt: 3, backgroundColor: 'background.paper' }}>
-            <Typography variant="h5" gutterBottom sx={{ color: 'text.primary' }}>
-              Aggregated Summary Across {aggregatedSummary.total_runs} Runs
-            </Typography>
-            <Grid container spacing={2}>
-              {Object.entries(aggregatedSummary).map(([key, value]) => (
-                <Grid item xs={12} sm={6} md={4} key={key}>
-                  <Box sx={{ p: 2, border: '1px solid #333', borderRadius: '8px', backgroundColor: '#2c2c2c' }}>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      {key.replace(/_/g, ' ')}
-                    </Typography>
-                    <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
-                      {formatValue(value, key)}
-                    </Typography>
-                  </Box>
-                </Grid>
-              ))}
-            </Grid>
-          </Paper>
+        {!loading && !error && summaries.length > 0 && (
+          <>
+            <Paper sx={{ p: 3, mt: 3, mb: 3, backgroundColor: 'background.paper' }}>
+              <Typography variant="h5" gutterBottom sx={{ color: 'text.primary' }}>
+                Aggregated Summary Across {aggregatedSummary.total_runs} Runs
+              </Typography>
+              <Grid container spacing={2}>
+                {Object.entries(aggregatedSummary).map(([key, value]) => (
+                  <Grid item xs={12} sm={6} md={4} key={key}>
+                    <Box sx={{ p: 2, border: '1px solid #333', borderRadius: '8px', backgroundColor: '#2c2c2c' }}>
+                      <Typography variant="subtitle2" color="text.secondary">
+                        {key.replace(/_/g, ' ')}
+                      </Typography>
+                      <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
+                        {formatValue(value, key)}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                ))}
+              </Grid>
+            </Paper>
+            <ComparisonTable summaries={summaries} />
+          </>
         )}
       </Box>
     </Container>

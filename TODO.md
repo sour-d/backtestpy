@@ -1,7 +1,7 @@
-- [] need to create the comparison table
-- [] need to check how trailing working
+- [] think about decouplinggst
 - [] change data from spot to futures
-- [] check why without trailing stoploss time is wrong
-- [] adding more data in cli log for timeframe
 - [] check backtest runtime.
-- [] fix chart
+- [] add a db to store the state of backtesting
+- [] think about testability of system
+- [] add docker
+- [] modify cli output log to show less data

@@ -93,12 +93,12 @@ const ChartComponent = ({ data, trades = [], title = "Candlestick Chart" }) => {
     const validData = data
       .map(d => ({
         ...d,
-        time: d.timestamp
+        time: d.timestamp / 1000
       }))
       .filter(d => !isNaN(d.time));
 
     // Sort data by time in ascending order
-    // validData.sort((a, b) => a.time - b.time);
+    validData.sort((a, b) => a.time - b.time);
 
 
     const formattedCandleData = validData.map(d => ({
@@ -115,10 +115,8 @@ const ChartComponent = ({ data, trades = [], title = "Candlestick Chart" }) => {
       color: d.close > d.open ? 'rgba(38, 166, 154, 0.5)' : 'rgba(239, 83, 80, 0.5)',
     }));
 
-    console.log('Formatted Candle Data:', formattedCandleData);
-
     candlestickSeriesRef.current.setData(formattedCandleData);
-    // volumeSeriesRef.current.setData(formattedVolumeData);
+    volumeSeriesRef.current.setData(formattedVolumeData);
 
     // Add markers for trades
     const markers = [];
@@ -144,7 +142,7 @@ const ChartComponent = ({ data, trades = [], title = "Candlestick Chart" }) => {
     trades.forEach(trade => {
       // Entry marker
       const entryDate = new Date(trade.entry_date);
-      const entryTime = entryDate.getTime();
+      const entryTime = entryDate.getTime() / 1000;
       // const snappedEntryTime = findClosestCandleTime(entryTime);
 
       markers.push({
@@ -157,7 +155,7 @@ const ChartComponent = ({ data, trades = [], title = "Candlestick Chart" }) => {
 
       // Exit marker
       const exitDate = new Date(trade.exit_date);
-      const exitTime = exitDate.getTime();
+      const exitTime = exitDate.getTime() / 1000;
       // const snappedExitTime = findClosestCandleTime(exitTime);
 
       markers.push({
@@ -168,8 +166,8 @@ const ChartComponent = ({ data, trades = [], title = "Candlestick Chart" }) => {
         text: 'E',
       });
     });
-    // const seriesMarker = createSeriesMarkers(candlestickSeriesRef.current, markers);
-    // setSeriesMarker(seriesMarker);
+    const seriesMarker = createSeriesMarkers(candlestickSeriesRef.current, markers);
+    setSeriesMarker(seriesMarker);
 
     chartRef.current.timeScale().fitContent();
     // Ensure all markers are visible by setting the visible range
