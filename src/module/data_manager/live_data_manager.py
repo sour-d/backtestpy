@@ -9,9 +9,9 @@ import pytz
 
 from .data_manager_base import DataStorageBase
 from utils.indicator_processor import IndicatorProcessor
-from event_emitter import EventEmitter
-from storage_manager.file_store_manager import FileStoreManager
-from storage_manager.storage_manager_base import LIVE_DATA_TYPE, RAW_DATA_TYPE, PROCESSED_DATA_TYPE
+from utils.event_emitter import EventEmitter
+from module.storage_manager.file_store_manager import FileStoreManager
+from module.storage_manager.storage_manager_base import PAPER_DATA_TYPE, RAW_DATA_TYPE, PROCESSED_DATA_TYPE
 
 class LiveDataStorage(DataStorageBase, EventEmitter):
     def __init__(self, symbol: str, timeframe: str, initial_candles: list, indicator_configs: list, is_testnet: bool = True, simulation_data: pd.DataFrame = None, logger=None):
@@ -51,7 +51,7 @@ class LiveDataStorage(DataStorageBase, EventEmitter):
 
         # Initialize FileStoreManager for live data
         symbol_info = {'symbol': symbol, 'timeframe': timeframe, 'start': datetime.now().strftime('%Y-%m-%d')}
-        self.file_store_manager = FileStoreManager(symbol_info, data_type=LIVE_DATA_TYPE)
+        self.file_store_manager = FileStoreManager(symbol_info, data_type=PAPER_DATA_TYPE)
 
         self.all_candles = deque(maxlen=500)
         if not self.simulation_mode:

@@ -3,11 +3,11 @@ import yaml
 from pathlib import Path
 from datetime import datetime
 
-from storage_manager.storage_manager_base import BACKTEST_DATA_TYPE, PROCESSED_DATA_TYPE, RAW_DATA_TYPE
+from module.storage_manager.storage_manager_base import BACKTEST_DATA_TYPE, PROCESSED_DATA_TYPE, RAW_DATA_TYPE
 
 from .historical_data_fetcher import download_data_for_pair
 
-from storage_manager.file_store_manager import FileStoreManager # New import
+from module.storage_manager.file_store_manager import FileStoreManager # New import
 from utils.indicator_processor import IndicatorProcessor # Keep IndicatorProcessor
 
 

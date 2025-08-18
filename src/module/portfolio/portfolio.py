@@ -1,6 +1,6 @@
 import pandas as pd
-from storage_manager.file_store_manager import FileStoreManager
-from storage_manager.storage_manager_base import RESULT_DATA_TYPE, SUMMARY_DATA_TYPE
+from module.storage_manager.file_store_manager import FileStoreManager
+from module.storage_manager.storage_manager_base import RESULT_DATA_TYPE, SUMMARY_DATA_TYPE
 
 class Portfolio:
     def __init__(self, capital=100000, risk_pct=5, fee_pct=0.1, file_store_manager: FileStoreManager = None, logger=None):

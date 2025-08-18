@@ -33,14 +33,14 @@ download:
 # Command to run the backtest.
 backtest:
 	@echo "🚀 Running backtest..."
-	@python main.py
+	@python src/main.py
 	@echo "✅ Backtest run finished."
 
 # command for live trading
-live: 
+paper: 
 	@echo "🚀 Starting live trading..."
-	@python live_main.py
-	@echo "✅ Live trading started."
+	@python src/paper_main.py
+	@echo "✅ Paper trading started."
 
 # Command to start the visualizer web server.
 visualize:
@@ -58,7 +58,7 @@ start-dev:
 clean:
 	@echo "🧹 Cleaning generated data..."
 	@# Use -f to ignore errors if the directories or files don't exist
-	@rm -fr data/live/*
+	@rm -fr data/paper/*
 	@rm -fr data/backtest/*
 	@rm -fr logs/*
 	@echo "✅ Done."

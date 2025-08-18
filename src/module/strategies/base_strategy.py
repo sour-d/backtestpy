@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 import datetime
-from data_manager.data_manager_base import DataStorageBase
-from data_manager.historical_data_manager import HistoricalDataStorage
-from data_manager.live_data_manager import LiveDataStorage
+from module.data_manager.data_manager_base import DataStorageBase
+from module.data_manager.historical_data_manager import HistoricalDataStorage
+from module.data_manager.live_data_manager import LiveDataStorage
 
 class BaseStrategy(ABC):
     def __init__(self, data_storage: DataStorageBase, portfolio, logger=None, **params):
@@ -240,7 +240,7 @@ class BaseStrategy(ABC):
                 if sell_price:
                     self._take_position("sell", sell_price)
 
-    def _on_tick(self):
+    def on_tick(self):
         trade = self.portfolio.current_trade
         if trade:
             if not self._check_stop_loss(trade):
@@ -259,39 +259,11 @@ class BaseStrategy(ABC):
                 break
 
             # Process the tick with the newly received data
-            self._on_tick()
+            self.on_tick()
             
         if self.portfolio.current_trade:
             self._liquidate(reason="end_of_data")
 
         return self.portfolio.summary()
     
-    async def run_live(self):
-        # Subscribe to new_candle events from LiveDataStorage
-        if isinstance(self.data_storage, LiveDataStorage):
-            self.data_storage.on("new_candle", self._on_live_candle_received)
-            await self.data_storage.start_live_data() # Start the data stream
-        else:
-            raise TypeError("run_live can only be called with LiveDataStorage.")
-
-    async def _on_live_candle_received(self, current_candle, historical_data):
-        # This method is called when LiveDataStorage emits a new_candle event
-        # The data_storage's internal state (current_candle, historical_data) is already updated
-        self._on_tick()
-
-    async def run_simulation(self):
-        if isinstance(self.data_storage, HistoricalDataStorage):
-            return await self.run_backtest() # HistoricalDataStorage is synchronous
-        elif isinstance(self.data_storage, LiveDataStorage):
-            # For simulation with LiveDataStorage, we still want to iterate through it
-            # but without the infinite loop of run_live. This needs careful handling.
-            # We'll iterate by calling get_next_processed_data until no more data.
-            while True:
-                current_candle, historical_data = await self.data_storage.get_next_processed_data()
-                if current_candle is not None:
-                    self._on_tick()
-                else:
-                    break # No more data from dummy source
-            return self.portfolio.summary()
-        else:
-            raise NotImplementedError("Unsupported DataStorage type for run_simulation.")
+    

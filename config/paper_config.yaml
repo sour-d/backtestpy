@@ -1,21 +1,9 @@
-# --- Backtest Settings ---
-# Define the symbols, timeframes, and periods for the backtest runs.
-backtest_settings:
-  symbols:
-    - "BTC/USDT"
-    - "ETH/USDT"
-    - "SOL/USDT"
-    - "GALA/USDT"
-    - "XRP/USDT"
-    - "LTC/USDT"
-    - "BNB/USDT"
-    - "ADA/USDT"
-    - "DOT/USDT"
-  timeframes:
-    - "4h"
-  periods:
-    # 2025: ["june", "july"]
-    2024: []
+# --- Live Trading Settings ---
+paper_trading:
+  symbol: "BTC/USDT"
+  timeframe: "1m"
+  # is_testnet: true # Set to true to use the Bybit Testnet
+  test: true
 
 # --- Indicator Pre-processing ---
 # These indicators will be calculated for the selected trading pair.
@@ -47,10 +35,3 @@ strategy:
     supertrend_multiplier: 3
     # trailing_stop_enabled: true
     trailing_stop_pct: 0.02  # 2% trailing stop
-
-# --- Live Trading Settings ---
-live_trading:
-  symbol: "BTC/USDT"
-  timeframe: "1m"
-  # is_testnet: true # Set to true to use the Bybit Testnet
-  test: true
