@@ -132,7 +132,7 @@ class LiveDataStorage(DataStorageBase, EventEmitter):
                 raise e
 
         # Convert raw candle to pandas Series with datetime and IST
-        candle_df_single = pd.DataFrame([completed_candle_raw], columns=['timestamp', 'open', 'high', 'low', 'close', 'volume', 'datetime'])
+        candle_df_single = pd.DataFrame([completed_candle_raw], columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
         candle_df_single['datetime'] = pd.to_datetime(candle_df_single['timestamp'], unit='ms')
         
         ist_timezone = pytz.timezone('Asia/Kolkata')
@@ -170,7 +170,9 @@ class LiveDataStorage(DataStorageBase, EventEmitter):
 
         # Save the processed data
         try:
-            self.file_store_manager.save_dataframe(self.data_df, PROCESSED_DATA_TYPE)
+            # Append only the latest processed candle to the file
+            latest_processed_candle = self.data_df.tail(1)
+            self.file_store_manager.save_dataframe(latest_processed_candle, PROCESSED_DATA_TYPE, append=True)
         except Exception as e:
             if self.logger:
                 self.logger.error(f"Error saving live processed data: {e}")
@@ -188,7 +190,7 @@ class LiveDataStorage(DataStorageBase, EventEmitter):
             while True:
                 current_candle, historical_data = await self.get_next_processed_data()
                 if current_candle is not None: # Only emit if a new completed candle was processed
-                    self.emit("new_candle", current_candle=current_candle, historical_data=historical_data)
+                    self.emit("new_candle")
                     if self.simulation_mode:
                         await asyncio.sleep(0.01) # a small delay to simulate live ticks
                     else:
@@ -210,42 +212,38 @@ class LiveDataStorage(DataStorageBase, EventEmitter):
             await self.close() # Process the current window
         self._current_step += 1
 
-        # Save the processed data
-        try:
-            self.file_store_manager.save_dataframe(self.data_df, PROCESSED_DATA_TYPE)
-        except Exception as e:
-            print(f"Error saving live processed data: {e}")
+        
 
         return self.current_candle(), self.data_df
 
-    async def start_live_data(self):
-        """
-        Starts the continuous live data fetching loop.
-        Emits 'new_candle' event for each new processed candle.
-        """
-        if not self.simulation_mode:
-            await self.connect()
-        try:
-            while True:
-                current_candle, historical_data = await self.get_next_processed_data()
-                if current_candle is not None: # Only emit if a new completed candle was processed
-                    self.emit("new_candle", current_candle=current_candle, historical_data=historical_data)
-                    if self.simulation_mode:
-                        await asyncio.sleep(0.01) # a small delay to simulate live ticks
-                    else:
-                        await asyncio.sleep(0.1) # Small delay to prevent busy-waiting
-                else:
-                    if self.simulation_mode:
-                        print("--- Live Simulation Finished ---")
-                        break # End of simulation
+    # async def start_live_data(self):
+    #     """
+    #     Starts the continuous live data fetching loop.
+    #     Emits 'new_candle' event for each new processed candle.
+    #     """
+    #     if not self.simulation_mode:
+    #         await self.connect()
+    #     try:
+    #         while True:
+    #             current_candle, historical_data = await self.get_next_processed_data()
+    #             if current_candle is not None: # Only emit if a new completed candle was processed
+    #                 self.emit("new_candle", current_candle=current_candle, historical_data=historical_data)
+    #                 if self.simulation_mode:
+    #                     await asyncio.sleep(0.01) # a small delay to simulate live ticks
+    #                 else:
+    #                     await asyncio.sleep(0.1) # Small delay to prevent busy-waiting
+    #             else:
+    #                 if self.simulation_mode:
+    #                     print("--- Live Simulation Finished ---")
+    #                     break # End of simulation
 
-        except asyncio.CancelledError:
-            print("Live data stream cancelled.")
-        except Exception as e:
-            print(f"Error in start_live_data: {e}")
-            raise e  # Re-raise the exception to be handled by the caller
-        finally:
-            await self.close()
+    #     except asyncio.CancelledError:
+    #         print("Live data stream cancelled.")
+    #     except Exception as e:
+    #         print(f"Error in start_live_data: {e}")
+    #         raise e  # Re-raise the exception to be handled by the caller
+    #     finally:
+    #         await self.close()
 
     def current_candle(self) -> pd.Series:
         if not self.data_df.empty:

@@ -49,9 +49,12 @@ class FileStoreManager(DataStoreManagerBase):
         else:
             raise ValueError(f"Unknown data type: {type}")
 
-    def save_dataframe(self, df: pd.DataFrame, type: str):
+    def save_dataframe(self, df: pd.DataFrame, type: str, append: bool = False):
         self._get_filepath(type).parent.mkdir(parents=True, exist_ok=True)
-        df.to_csv(self._get_filepath(type), index=False)
+        if append and self._get_filepath(type).exists():
+            df.to_csv(self._get_filepath(type), mode='a', header=False, index=False)
+        else:
+            df.to_csv(self._get_filepath(type), index=False)
 
     def load_dataframe(self, type: str) -> pd.DataFrame:
         if self._get_filepath(type).exists():

@@ -1,7 +1,7 @@
-- [] think about decouplinggst
-- [] change data from spot to futures
 - [] check backtest runtime.
 - [] add a db to store the state of backtesting
 - [] think about testability of system
 - [] add docker
 - [] modify cli output log to show less data
+- [] 500 proced data showing
+- [] fix live visualization

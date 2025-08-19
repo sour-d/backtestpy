@@ -59,6 +59,13 @@ clean:
 	@echo "🧹 Cleaning generated data..."
 	@# Use -f to ignore errors if the directories or files don't exist
 	@rm -fr data/paper/*
+	@rm -fr data/live/*
 	@rm -fr data/backtest/*
 	@rm -fr logs/*
 	@echo "✅ Done."
+
+setup:
+	@echo "Setting up for Backtesty..."
+	@pip install -r requirements.txt
+	@mkdir -p data/paper data/live data/backtest logs
+	@echo "✅ Setup complete."

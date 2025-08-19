@@ -27,7 +27,7 @@ class PaperEngine:
         symbol = paper_config['symbol']
         timeframe = paper_config['timeframe']
         is_testnet = paper_config.get('testnet', False)
-        is_test_mode = paper_config.get('test', False)
+        is_test_mode = os.getenv("TEST_PAPER_TRADE", "false").lower() == "true"
 
         symbol_info = {'symbol': symbol, 'timeframe': timeframe, 'start': datetime.now().strftime('%Y-%m-%d')}
         file_store_manager = FileStoreManager(symbol_info, data_type=PAPER_DATA_TYPE)
@@ -38,7 +38,7 @@ class PaperEngine:
                 initial_candles_df = pd.read_csv('data/test/raw/btcusdt_4h_all_2025.csv')
                 initial_candles_df['datetime'] = pd.to_datetime(initial_candles_df['timestamp'], unit='ms')
                 initial_candles = initial_candles_df.values.tolist()
-                simulation_data = initial_candles_df
+                simulation_data = initial_candles_df.drop(columns=['datetime'])
                 app_logger.info(f"Loaded {len(initial_candles)} candles from test data")
             except FileNotFoundError:
                 app_logger.error("Test data file not found at 'data/test/raw/btcusdt_4h_all_2025.csv'. Exiting.")

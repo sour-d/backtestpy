@@ -1,9 +1,8 @@
 # --- Live Trading Settings ---
 paper_trading:
   symbol: "BTC/USDT"
-  timeframe: "1m"
+  timeframe: "4h"
   # is_testnet: true # Set to true to use the Bybit Testnet
-  test: true
 
 # --- Indicator Pre-processing ---
 # These indicators will be calculated for the selected trading pair.

@@ -38,6 +38,13 @@ const ConfigPage = () => {
             >
               Live
             </button>
+            <button
+              onClick={() => handleModeChange('paper')}
+              className={`px-4 py-2 rounded-lg ${mode === 'live' ? 'bg-green-600' : 'bg-gray-700'
+                }`}
+            >
+                Paper
+            </button>
           </div>
           <p className="mt-4">Currently selected mode: <span className="font-bold">{mode}</span></p>
         </div>
