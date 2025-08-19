@@ -1,7 +1,7 @@
 # Makefile for the backtesty project
 
 # Use .PHONY to ensure commands run even if files with the same name exist.
-.PHONY: help install clean download run visualize
+.PHONY: help install clean download run visualize start
 
 # Default command: `make` or `make help`
 help:
@@ -45,13 +45,13 @@ paper:
 # Command to start the visualizer web server.
 visualize:
 	@echo "📈 Starting visualizer server..."
-	@cd visualizer && npm run dev
+	@cd visualizer && PORT=${PORT:-3000} npm run dev
 
 start-dev:
 	@echo "🚀 Starting development server and ping script..."
-	@cd visualizer && npm run dev &
+	@cd visualizer && PORT=${PORT:-3000} npm run dev &
 	@sleep 5 # Give the server a moment to start
-	@python ping_server.py &
+	@python src/ping_server.py &
 	@echo "✅ Development server and ping script started."
 
 # Command to clean generated files
@@ -67,5 +67,12 @@ clean:
 setup:
 	@echo "Setting up for Backtesty..."
 	@pip install -r requirements.txt
+	@cd visualizer && yarn install
 	@mkdir -p data/paper data/live data/backtest logs
 	@echo "✅ Setup complete."
+
+start:
+	@echo "🚀 Starting all services for Render.com..."
+	@make start-dev &
+	@make paper
+	@echo "✅ All services started."
