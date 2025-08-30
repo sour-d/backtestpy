@@ -6,3 +6,6 @@ ccxt
 plotly
 PyYAML
 pandas-ta
+python-dotenv
+pytest
+python-binance
