@@ -11,7 +11,7 @@ SUMMARY_DATA_TYPE = "summary"
 
 BACKTEST_DATA_TYPE = "backtest"
 LIVE_DATA_TYPE = "live"
-PAPER_DATA_TYPE = "paper"
+
 TEST_DATA_TYPE = "test"
 
 BASE_PATH = "./data"

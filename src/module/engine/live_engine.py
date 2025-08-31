@@ -88,7 +88,7 @@ class LiveTradingEngine:
             initial_candles=initial_candles,
             indicator_configs=indicator_configs,
             logger=self.logger,
-            data_type=LIVE_DATA_TYPE,
+            
             exchange=self.exchange,
         )
 

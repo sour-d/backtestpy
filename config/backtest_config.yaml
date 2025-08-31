@@ -16,34 +16,3 @@ backtest_settings:
   periods:
     # 2025: ["june", "july"]
     2025: []
-
-# --- Indicator Pre-processing ---
-# These indicators will be calculated for the selected trading pair.
-indicators:
-  # Moving Averages
-  - { name: "ma_high", period: 20 }
-  - { name: "ma_low", period: 20 }
-
-  # SuperTrend
-  - { name: "supertrend", period: 10, multiplier: 2 }
-
-  # EMAs for lower timeframe entry
-  - { name: "EMA", period: 12 }
-  - { name: "EMA", period: 26 }
-
-# --- Portfolio Configuration ---
-portfolio:
-  initial_capital: 100000
-  fee_pct: 0.05
-  risk_pct: 5 # New: Risk percentage per trade
-
-# --- Strategy Configuration ---
-# This strategy will be applied to the selected trading pair(s).
-strategy:
-  class_name: "MovingAverageStrategy"
-  parameters:
-    ma_period: 20
-    supertrend_period: 10
-    supertrend_multiplier: 3
-    # trailing_stop_enabled: true
-    trailing_stop_pct: 0.02  # 2% trailing stop

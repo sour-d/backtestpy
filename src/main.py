@@ -2,10 +2,10 @@ import yaml
 import asyncio
 from module.engine.backtest_engine import BacktestEngine
 
-async def main():
-    with open("config/backtest_config.yaml", "r") as f:
-        config = yaml.safe_load(f)
+from utils.helpers import load_config
 
+async def main():
+    config = load_config('backtest')
     engine = BacktestEngine(config)
     await engine.run()
 

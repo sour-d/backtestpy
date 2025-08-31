@@ -2,27 +2,3 @@
 live_trading:
   symbol: BTC/USDT
   timeframe: 1m
-  # testnet: true
-
-portfolio:
-  initial_capital: 100000 # This will be overwritten by the exchange balance
-  risk_pct: 1.0
-  fee_pct: 0.04
-
-# Strategy Configuration
-strategy:
-  name: moving_average_strategy
-  class_name: MovingAverageStrategy
-  parameters:
-    ma_period: 20
-    supertrend_period: 10
-    supertrend_multiplier: 3
-
-indicators:
-  - name: ma_high
-    period: 20
-  - name: ma_low
-    period: 20
-  - name: supertrend
-    period: 10
-    multiplier: 3

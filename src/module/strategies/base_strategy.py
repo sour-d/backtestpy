@@ -71,7 +71,7 @@ class BaseStrategy(ABC):
 
         return max(0, round(position_size, 2))
 
-    def _take_position(self, trade_type, price, stop_loss=None):
+    async def _take_position(self, trade_type, price, stop_loss=None):
         if stop_loss is None:
             risk_per_share = price * self.risk_pct
             if trade_type == "buy":
@@ -88,7 +88,7 @@ class BaseStrategy(ABC):
                     f"Placing live {trade_type} order for {amount} of {self.data_storage.symbol} at {price}"
                 )
                 try:
-                    self.exchange.create_market_order(
+                    await self.exchange.create_market_order(
                         symbol=self.data_storage.symbol,
                         side=trade_type,
                         amount=amount,
@@ -121,7 +121,7 @@ class BaseStrategy(ABC):
         if self.logger:
             self.logger.info(f"Trade signal: {trade_type} at {price}")
 
-    def _liquidate(self, price=0, reason="signal_exit"):
+    async def _liquidate(self, price=0, reason="signal_exit"):
         if self.logger:
             self.logger.info(f"Liquidation signal: {reason} at {price}")
         # Use current_candle for liquidation price if not provided
@@ -136,7 +136,7 @@ class BaseStrategy(ABC):
                 )
                 try:
                     side = "sell" if trade["type"] == "buy" else "buy"
-                    self.exchange.create_market_order(
+                    await self.exchange.create_market_order(
                         symbol=self.data_storage.symbol,
                         side=side,
                         amount=trade["quantity"],
@@ -252,7 +252,7 @@ class BaseStrategy(ABC):
                 )
             self.portfolio.update_stop_loss(new_stop)
 
-    def _check_stop_loss(self, trade):
+    async def _check_stop_loss(self, trade):
         today = self.data_storage.current_candle()
         stop_loss_hit = False
 
@@ -334,13 +334,13 @@ class BaseStrategy(ABC):
                 if sell_price:
                     self._take_position("sell", sell_price)
 
-    def on_tick(self):
+    async def on_tick(self):
         trade = self.portfolio.current_trade
         if trade:
-            if not self._check_stop_loss(trade):
-                self._check_exit_signals(trade)
+            if not await self._check_stop_loss(trade):
+                await self._check_exit_signals(trade)
         else:
-            self._check_entry_signals()
+            await self._check_entry_signals()
 
     async def run_backtest(self):
         while self.data_storage.has_more_data:

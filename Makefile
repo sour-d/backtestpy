@@ -10,8 +10,8 @@ help:
 	@echo "  make download         - Smart download data (skips existing files)"
 	@echo "  make download force=true - Force re-download of all data"
 	@echo "  make run              - Run backtest for all combinations in the config"
-	@echo "  make paper            - Run the paper trading bot"
 	@echo "  make live             - Run the live trading bot"
+	@echo "  make health-check     - Run a quick health check of the live trading system"
 	@echo "  make visualize        - Start the web server to visualize results"
 	@echo "  make clean            - Clean generated data (processed files and results)"
 
@@ -38,17 +38,17 @@ backtest:
 	@python src/main.py
 	@echo "✅ Backtest run finished."
 
-# command for paper trading
-paper: 
-	@echo "🚀 Starting paper trading..."
-	@python src/paper_main.py
-	@echo "✅ Paper trading started."
-
 # command for live trading
 live:
 	@echo "🚀 Starting live trading..."
 	@python src/live_main.py
 	@echo "✅ Live trading started."
+
+# command for health check
+health-check:
+	@echo "👩‍⚕️ Running health check..."
+	@python src/health_check.py
+	@echo "✅ Health check finished."
 
 # Command to start the visualizer web server.
 visualize:
@@ -66,7 +66,6 @@ start-dev:
 clean:
 	@echo "🧹 Cleaning generated data..."
 	@# Use -f to ignore errors if the directories or files don't exist
-	@rm -fr data/paper/*
 	@rm -fr data/live/*
 	@rm -fr data/backtest/*
 	@rm -fr logs/*
@@ -76,11 +75,7 @@ setup:
 	@echo "Setting up for Backtesty..."
 	@pip install -r requirements.txt
 	@cd visualizer && yarn install
-	@mkdir -p data/paper data/live data/backtest logs
+	@mkdir -p data/live data/backtest logs
 	@echo "✅ Setup complete."
 
-start:
-	@echo "🚀 Starting all services for Render.com..."
-	@make start-dev &
-	@make paper
-	@echo "✅ All services started."
+
