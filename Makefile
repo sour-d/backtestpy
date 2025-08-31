@@ -10,6 +10,8 @@ help:
 	@echo "  make download         - Smart download data (skips existing files)"
 	@echo "  make download force=true - Force re-download of all data"
 	@echo "  make run              - Run backtest for all combinations in the config"
+	@echo "  make paper            - Run the paper trading bot"
+	@echo "  make live             - Run the live trading bot"
 	@echo "  make visualize        - Start the web server to visualize results"
 	@echo "  make clean            - Clean generated data (processed files and results)"
 
@@ -36,16 +38,22 @@ backtest:
 	@python src/main.py
 	@echo "✅ Backtest run finished."
 
-# command for live trading
+# command for paper trading
 paper: 
-	@echo "🚀 Starting live trading..."
+	@echo "🚀 Starting paper trading..."
 	@python src/paper_main.py
 	@echo "✅ Paper trading started."
+
+# command for live trading
+live:
+	@echo "🚀 Starting live trading..."
+	@python src/live_main.py
+	@echo "✅ Live trading started."
 
 # Command to start the visualizer web server.
 visualize:
 	@echo "📈 Starting visualizer server..."
-	@cd visualizer && PORT=${PORT:-3000} npm run dev
+	@cd visualizer && npm run dev
 
 start-dev:
 	@echo "🚀 Starting development server and ping script..."

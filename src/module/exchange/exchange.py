@@ -6,8 +6,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 
 from dotenv import load_dotenv
-import ccxt
-from src.utils.logger import app_logger
+import ccxt.pro as ccxt
+from utils.logger import app_logger
 
 
 class OrderType(Enum):
@@ -113,7 +113,7 @@ class Exchange:
         testnet = os.getenv("BINANCE_TESTNET", "false").lower() in {
             "1",
             "true",
-            "yes",
+"yes",
             "on",
         }
 
@@ -129,8 +129,11 @@ class Exchange:
             }
         )
 
-        # Enable features
-        self.client.load_markets()
+    @classmethod
+    async def create(cls, config: Optional[Dict[str, Any]] = None, logger=None):
+        exchange = cls(config, logger)
+        await exchange.client.load_markets()
+        return exchange
 
     def _get_order_config(self, config: Optional[OrderConfig] = None) -> OrderConfig:
         """Get order configuration with defaults."""
@@ -145,36 +148,36 @@ class Exchange:
                 raise ValueError(f"Invalid side: {side}")
         return side
 
-    def fetch_order_book(
+    async def fetch_order_book(
         self, symbol: str, limit: Optional[int] = None
     ) -> Dict[str, Any]:
         """Fetch futures order book (depth)."""
         try:
-            return self.client.fetch_order_book(symbol, limit)
+            return await self.client.fetch_order_book(symbol, limit)
         except Exception as e:
             self.logger.error(f"fetch_order_book error: {e}")
             raise
 
-    def fetch_trades(
+    async def fetch_trades(
         self, symbol: str, since: Optional[int] = None, limit: Optional[int] = None
     ) -> List[Dict[str, Any]]:
         """Fetch recent public trades for the symbol."""
         try:
-            return self.client.fetch_trades(symbol, since, limit)
+            return await self.client.fetch_trades(symbol, since, limit)
         except Exception as e:
             self.logger.error(f"fetch_trades error: {e}")
             raise
 
-    def fetch_balance(self, asset: str = "USDT") -> Dict[str, Any]:
+    async def fetch_balance(self, asset: str = "USDT") -> Dict[str, Any]:
         """Fetch a single futures asset balance (default: USDT)."""
         try:
-            balance = self.client.fetch_balance()
+            balance = await self.client.fetch_balance()
             return balance.get(asset, {})
         except Exception as e:
             self.logger.error(f"fetch_balance error: {e}")
             raise
 
-    def create_market_order(
+    async def create_market_order(
         self,
         symbol: str,
         side: Union[str, Side],
@@ -185,21 +188,7 @@ class Exchange:
         position_side: Optional[str] = None,
         client_order_id: Optional[str] = None,
     ) -> Union[Dict[str, Any], Dict[str, Dict[str, Any]]]:
-        """Create a market order with optional stop-loss and take-profit.
-
-        Args:
-            symbol: Trading pair (e.g., 'BTC/USDT')
-            side: 'buy' or 'sell'
-            amount: Order quantity
-            stop_loss: Optional stop-loss price
-            take_profit: Optional take-profit price
-            reduce_only: Whether this is a reduce-only order
-            position_side: Position side for hedge mode (omit for one-way mode)
-            client_order_id: Custom order ID
-
-        Returns:
-            Single order dict or dict with multiple orders if SL/TP specified
-        """
+        """Create a market order with optional stop-loss and take-profit."""
         validated_side = self._validate_side(side)
 
         try:
@@ -217,7 +206,7 @@ class Exchange:
             )
 
             # Place main market order
-            main_order = self.client.create_order(
+            main_order = await self.client.create_order(
                 symbol=symbol,
                 type="market",
                 side=validated_side.value.lower(),
@@ -230,14 +219,14 @@ class Exchange:
 
             # Add stop-loss if specified
             if stop_loss:
-                sl_order = self._create_stop_loss_order(
+                sl_order = await self._create_stop_loss_order(
                     symbol, validated_side, amount, stop_loss, position_side
                 )
                 result["stop_loss"] = sl_order
 
             # Add take-profit if specified
             if take_profit:
-                tp_order = self._create_take_profit_order(
+                tp_order = await self._create_take_profit_order(
                     symbol, validated_side, amount, take_profit, position_side
                 )
                 result["take_profit"] = tp_order
@@ -249,7 +238,7 @@ class Exchange:
             self.logger.error(f"create_market_order error: {e}")
             raise
 
-    def create_limit_order(
+    async def create_limit_order(
         self,
         symbol: str,
         side: Union[str, Side],
@@ -262,23 +251,7 @@ class Exchange:
         client_order_id: Optional[str] = None,
         time_in_force: str = "GTC",
     ) -> Union[Dict[str, Any], Dict[str, Dict[str, Any]]]:
-        """Create a limit order with optional stop-loss and take-profit.
-
-        Args:
-            symbol: Trading pair (e.g., 'BTC/USDT')
-            side: 'buy' or 'sell'
-            amount: Order quantity
-            price: Limit price
-            stop_loss: Optional stop-loss price
-            take_profit: Optional take-profit price
-            reduce_only: Whether this is a reduce-only order
-            position_side: Position side for hedge mode (omit for one-way mode)
-            client_order_id: Custom order ID
-            time_in_force: Time in force (GTC, IOC, FOK)
-
-        Returns:
-            Single order dict or dict with multiple orders if SL/TP specified
-        """
+        """Create a limit order with optional stop-loss and take-profit."""
         validated_side = self._validate_side(side)
 
         try:
@@ -296,7 +269,7 @@ class Exchange:
             )
 
             # Place main limit order
-            main_order = self.client.create_order(
+            main_order = await self.client.create_order(
                 symbol=symbol,
                 type="limit",
                 side=validated_side.value.lower(),
@@ -309,14 +282,14 @@ class Exchange:
 
             # Add stop-loss if specified
             if stop_loss:
-                sl_order = self._create_stop_loss_order(
+                sl_order = await self._create_stop_loss_order(
                     symbol, validated_side, amount, stop_loss, position_side
                 )
                 result["stop_loss"] = sl_order
 
             # Add take-profit if specified
             if take_profit:
-                tp_order = self._create_take_profit_order(
+                tp_order = await self._create_take_profit_order(
                     symbol, validated_side, amount, take_profit, position_side
                 )
                 result["take_profit"] = tp_order
@@ -328,7 +301,7 @@ class Exchange:
             self.logger.error(f"create_limit_order error: {e}")
             raise
 
-    def _create_stop_loss_order(
+    async def _create_stop_loss_order(
         self,
         symbol: str,
         original_side: Side,
@@ -346,7 +319,7 @@ class Exchange:
 
         self.logger.info(f"Creating stop-loss order at {stop_price}")
 
-        return self.client.create_order(
+        return await self.client.create_order(
             symbol=symbol,
             type="stop_market",
             side=opposite_side,
@@ -355,7 +328,7 @@ class Exchange:
             params=params,
         )
 
-    def _create_take_profit_order(
+    async def _create_take_profit_order(
         self,
         symbol: str,
         original_side: Side,
@@ -373,7 +346,7 @@ class Exchange:
 
         self.logger.info(f"Creating take-profit order at {tp_price}")
 
-        return self.client.create_order(
+        return await self.client.create_order(
             symbol=symbol,
             type="limit",
             side=opposite_side,
@@ -382,7 +355,7 @@ class Exchange:
             params=params,
         )
 
-    def update_order(
+    async def update_order(
         self,
         order_id: Union[int, str],
         symbol: str,
@@ -394,67 +367,67 @@ class Exchange:
             params = {}
             if stop_price is not None:
                 params["stopPrice"] = stop_price
-            return self.client.edit_order(order_id, symbol, price=price, params=params)
+            return await self.client.edit_order(order_id, symbol, price=price, params=params)
         except Exception as e:
             self.logger.error(f"update_order error: {e}")
             raise
 
-    def cancel_order(self, order_id: Union[int, str], symbol: str) -> Dict[str, Any]:
+    async def cancel_order(self, order_id: Union[int, str], symbol: str) -> Dict[str, Any]:
         """Cancel an order."""
         try:
-            return self.client.cancel_order(order_id, symbol)
+            return await self.client.cancel_order(order_id, symbol)
         except Exception as e:
             self.logger.error(f"cancel_order error: {e}")
             raise
 
-    def cancel_all_orders(self, symbol: str) -> List[Dict[str, Any]]:
+    async def cancel_all_orders(self, symbol: str) -> List[Dict[str, Any]]:
         """Cancel all open orders for a symbol."""
         try:
-            return self.client.cancel_all_orders(symbol)
+            return await self.client.cancel_all_orders(symbol)
         except Exception as e:
             self.logger.error(f"cancel_all_orders error: {e}")
             raise
 
-    def fetch_order(self, order_id: Union[int, str], symbol: str) -> Dict[str, Any]:
+    async def fetch_order(self, order_id: Union[int, str], symbol: str) -> Dict[str, Any]:
         """Fetch a single order by id."""
         try:
-            return self.client.fetch_order(order_id, symbol)
+            return await self.client.fetch_order(order_id, symbol)
         except Exception as e:
             self.logger.error(f"fetch_order error: {e}")
             raise
 
-    def fetch_open_orders(
+    async def fetch_open_orders(
         self, symbol: Optional[str] = None, limit: Optional[int] = None
     ) -> List[Dict[str, Any]]:
         """Fetch open orders, optionally filtered by symbol."""
         try:
-            return self.client.fetch_open_orders(symbol, None, limit)
+            return await self.client.fetch_open_orders(symbol, None, limit)
         except Exception as e:
             self.logger.error(f"fetch_open_orders error: {e}")
             raise
 
-    def fetch_order_history(
+    async def fetch_order_history(
         self, symbol: str, limit: Optional[int] = None
     ) -> List[Dict[str, Any]]:
         """Fetch order history for a symbol."""
         try:
-            return self.client.fetch_orders(symbol, None, limit)
+            return await self.client.fetch_orders(symbol, None, limit)
         except Exception as e:
             self.logger.error(f"fetch_order_history error: {e}")
             raise
 
-    def fetch_positions(self, symbol: Optional[str] = None) -> List[Dict[str, Any]]:
+    async def fetch_positions(self, symbol: Optional[str] = None) -> List[Dict[str, Any]]:
         """Fetch current positions."""
         try:
-            return self.client.fetch_positions([symbol] if symbol else None)
+            return await self.client.fetch_positions([symbol] if symbol else None)
         except Exception as e:
             self.logger.error(f"fetch_positions error: {e}")
             raise
 
-    def fetch_account_info(self) -> Dict[str, Any]:
+    async def fetch_account_info(self) -> Dict[str, Any]:
         """Fetch account information."""
         try:
-            return self.client.fetch_balance()
+            return await self.client.fetch_balance()
         except Exception as e:
             self.logger.error(f"fetch_account_info error: {e}")
             raise

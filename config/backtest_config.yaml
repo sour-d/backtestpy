@@ -3,19 +3,19 @@
 backtest_settings:
   symbols:
     - "BTC/USDT"
-    - "ETH/USDT"
-    - "SOL/USDT"
-    - "GALA/USDT"
-    - "XRP/USDT"
-    - "LTC/USDT"
-    - "BNB/USDT"
-    - "ADA/USDT"
-    - "DOT/USDT"
+    # - "ETH/USDT"
+    # - "SOL/USDT"
+    # - "GALA/USDT"
+    # - "XRP/USDT"
+    # - "LTC/USDT"
+    # - "BNB/USDT"
+    # - "ADA/USDT"
+    # - "DOT/USDT"
   timeframes:
     - "4h"
   periods:
     # 2025: ["june", "july"]
-    2024: []
+    2025: []
 
 # --- Indicator Pre-processing ---
 # These indicators will be calculated for the selected trading pair.
